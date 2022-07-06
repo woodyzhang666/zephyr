@@ -1,0 +1,54 @@
+
+/dts-v1/;
+#include <wch/ch32/ch32f103X8.dtsi>
+//#include <st/f1/stm32f103c(8-b)tx-pinctrl.dtsi>
+
+/ {
+	model = "ch32f103c8_mini";
+	compatible = "ch32,ch32f103c8_mini";
+
+	alias {
+
+	};
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,console = &usart1;
+		zephyr,shell-uart = &usart1;
+		zephyr,flash = &flash0;
+	};
+
+};
+
+&clk_hse {
+	clock-frequency = <DT_FREQ_M(8)>;
+	status = "okay";
+};
+
+&pll {
+	mul = <9>;
+	clocks = <&clk_hse>;
+	status = "okay";
+};
+
+&rcc {
+	clocks = <&pll>;
+	clock-frequency = <DT_FREQ_M(72)>;
+	ahb-prescaler = <1>;
+	apb1-prescaler = <2>;
+	apb2-prescaler = <1>;
+};
+
+&usart1 {
+	pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
+	pinctrl-names = "default";
+	current-speed = <115200>;
+	status = "okay";
+};
+
+&usb {
+	pinctrl-0 = <&usb_dm_pa11 &usb_dp_pa12>;
+	pinctrl-names = "default";
+	status = "disabled";
+};
+
+

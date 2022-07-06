@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+
+if SOC_SERIES_CH32FX
+
+source "soc/arm/st_stm32/ch32f/Kconfig.defconfig.ch32f*"
+
+config SOC_SERIES
+	default "ch32f"
+
+endif

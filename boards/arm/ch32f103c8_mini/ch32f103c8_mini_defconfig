@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+
+CONFIG_SOC_SERIES_CH32FX=y
+CONFIG_SOC_CH32F103X8=y
+
+# enable uart driver
+CONFIG_SERIAL=y
+# enable console
+CONFIG_CONSOLE=y
+CONFIG_UART_CONSOLE=y
+
+# enable GPIO
+CONFIG_GPIO=y
+
+# enable clocks
+CONFIG_CLOCK_CONTROL=y
+CONFIG_CLOCK_STM32_RCC=y
+
+# enable pin controller
+CONFIG_PINCTRL=y

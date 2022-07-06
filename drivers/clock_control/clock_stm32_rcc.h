@@ -1,0 +1,73 @@
+#include <zephyr/sys/util_macro.h>
+
+#define RCC_CR					0x0
+#define RCC_CR_HSION			BIT(0)
+#define RCC_CR_HSIRDY			BIT(1)
+#define RCC_CR_HSITRIM_MSK		0x000000F8U
+#define RCC_CR_HSITRIM_POS		3
+#define RCC_CR_HSICAL_MSK		0x0000FF00U
+#define RCC_CR_HSICAL_POS		8
+#define RCC_CR_HSEON			BIT(16)
+#define RCC_CR_HSERDY			BIT(17)
+#define RCC_CR_HSEBYP			BIT(18)		/* Bypass crystal, use oscilator directly */
+#define RCC_CR_CSSON			BIT(19)		/* Clock Secure System, NMI enable */
+#define RCC_CR_PLLON			BIT(24)
+#define RCC_CR_PLLRDY			BIT(25)
+
+#define RCC_CFGR0				0x4
+/* System clock Switch */
+#define RCC_CFGR0_SW_MSK		0x00000003U
+#define RCC_CFGR0_SW_POS		0
+#define RCC_CFGR0_SW_HSI		0x00000000U
+#define RCC_CFGR0_SW_HSE		0x00000001U
+#define RCC_CFGR0_SW_PLL		0x00000002U
+/* System clock Switch Status */
+#define RCC_CFGR0_SWS_MSK		0x0000000CU
+#define RCC_CFGR0_SWS_POS		2
+/* the same definition as RCC_CFGR0_SW_* */
+/* AHB Prescaler from SYSCLK */
+#define RCC_CFGR0_HPRE_MSK		0x000000F0U
+#define RCC_CFGR0_HPRE_POS		4
+#define RCC_CFGR0_HPRE_DIV1		0x0U
+#define RCC_CFGR0_HPRE_DIV2		0x8U
+#define RCC_CFGR0_HPRE_DIV4		0x9U
+#define RCC_CFGR0_HPRE_DIV8		0xAU
+#define RCC_CFGR0_HPRE_DIV16	0xBU
+#define RCC_CFGR0_HPRE_DIV64	0xCU
+#define RCC_CFGR0_HPRE_DIV128	0xDU
+#define RCC_CFGR0_HPRE_DIV256	0xEU
+#define RCC_CFGR0_HPRE_DIV512	0xFU
+/* APB1 Prescaler from HCLK */
+#define RCC_CFGR0_PPRE1_MSK		0x00000700U
+#define RCC_CFGR0_PPRE1_POS		8
+#define RCC_CFGR0_PPRE1_DIV1	0x0U
+#define RCC_CFGR0_PPRE1_DIV2	0x4U
+#define RCC_CFGR0_PPRE1_DIV4	0x5U
+#define RCC_CFGR0_PPRE1_DIV8	0x6U
+#define RCC_CFGR0_PPRE1_DIV16	0x7U
+/* APB2 Prescaler from HCLK */
+#define RCC_CFGR0_PPRE2_MSK		0x00004800U
+#define RCC_CFGR0_PPRE2_POS		11
+#define RCC_CFGR0_PPRE2_DIV1	0x0U
+#define RCC_CFGR0_PPRE2_DIV2	0x4U
+#define RCC_CFGR0_PPRE2_DIV4	0x5U
+#define RCC_CFGR0_PPRE2_DIV8	0x6U
+#define RCC_CFGR0_PPRE2_DIV16	0x7U
+/* ADC Prescaler from PCLK2 */
+#define RCC_CFGR0_ADCPRE_MSK	0x0000C000U
+#define RCC_CFGR0_ADCPRE_POS	14
+#define RCC_CFGR0_ADCPRE_DIV2	0x0U
+#define RCC_CFGR0_ADCPRE_DIV4	0x1U
+#define RCC_CFGR0_ADCPRE_DIV6	0x2U
+#define RCC_CFGR0_ADCPRE_DIV8	0x3U
+/* PLL Source */
+#define RCC_CFGR0_PLLSRC_MSK	0x00010000U
+#define RCC_CFGR0_PLLSRC_POS	16
+#define RCC_CFGR0_PLLSRC_HSI	0x0U
+#define RCC_CFGR0_PLLSRC_HSE	0x1U
+
+
+#if DT_NODE_HAS_COMPAT_STATUS(DT_NODELABEL(clk_hse), fixed_clock, okay)
+#define CH32_HSE_ENABLED	1
+#define CH32_HSE_FREQ		DT_PROP(DT_NODELABEL(clk_hse), clock_frequency)
+#endif

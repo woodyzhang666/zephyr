@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+
+if SOC_CH32F103X8 || SOC_CH32F103X6
+
+config SOC
+	default "ch32f103x8"
+
+config NUM_IRQS
+	default 44
+
+endif

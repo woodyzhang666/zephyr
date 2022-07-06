@@ -60,4 +60,9 @@ source "drivers/clock_control/Kconfig.rcar"
 
 source "drivers/clock_control/Kconfig.xec"
 
+config CLOCK_STM32_RCC
+	bool "STM32 RCC-alike clock and reset driver"
+	help
+		Enabled in STM32 and compatible MCU chips.
+
 endif # CLOCK_CONTROL

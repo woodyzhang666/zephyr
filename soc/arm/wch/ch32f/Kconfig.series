@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+config SOC_SERIES_CH32FX
+	bool "CH32Fx Series MCU"
+	select ARM
+	select CPU_CORTEX_M3
+	select CPU_CORTEX_M_HAS_DWT
+	select SOC_FAMILY_WCH_ARM
+	select HAS_SWO
+	help
+	  Enable support for CH32Fx MCU series

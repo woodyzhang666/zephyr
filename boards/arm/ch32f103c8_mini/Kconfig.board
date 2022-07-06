@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_CH32F103C8_MINI
+	bool "CH32F103C8 Mini Board"
+	depends on SOC_CH32F103X8

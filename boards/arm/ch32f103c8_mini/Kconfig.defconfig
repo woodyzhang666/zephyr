@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+
+if BOARD_CH32F103C8_MINI
+
+config BOARD
+	default "ch32f103c8_mini"
+
+endif
