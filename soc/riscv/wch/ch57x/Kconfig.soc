@@ -1,0 +1,9 @@
+
+choice
+	prompt "CH57X MCU Selection"
+	depends on SOC_SERIES_CH57X
+
+config SOC_CH573F
+	bool "CH573F"
+
+endchoice

@@ -1,0 +1,6 @@
+if BOARD_CH573_EVB
+
+config BOARD
+	default "ch573_evb"
+
+endif

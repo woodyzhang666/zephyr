@@ -1,0 +1,23 @@
+
+if SOC_SERIES_CH57X
+
+config SOC_SERIES
+	default "ch57x"
+
+config SYS_CLOCK_HW_CYCLES_PER_SEC
+	default 62914560
+
+config MAIN_STACK_SIZE
+	default 1024
+
+if SOC_CH573F
+
+config SOC
+	default "ch573f"
+
+config NUM_IRQS
+	default 20
+
+endif
+
+endif

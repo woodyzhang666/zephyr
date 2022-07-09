@@ -1,0 +1,13 @@
+/dts-v1/;
+
+#include <wch/ch57x/ch573.dtsi>
+
+/ {
+	model = "ch573 evaluation board";
+	compatible = "wch,ch573";
+
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+	};
+};

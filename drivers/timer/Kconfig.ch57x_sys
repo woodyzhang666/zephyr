@@ -1,0 +1,10 @@
+
+config CH57X_SYSTICK
+	bool "ch57x SYSTICK timer"
+	depends on SOC_SERIES_CH57X
+	default y
+	select TICKLESS_CAPABLE
+	select SYSTEM_TIMER_HAS_DISABLE_SUPPORT
+	select TIMER_HAS_64BIT_CYCLE_COUNTER
+	help
+	  This option enables count-down systick timer on ch57x series.

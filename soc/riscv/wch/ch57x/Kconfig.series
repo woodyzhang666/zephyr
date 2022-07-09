@@ -1,0 +1,12 @@
+
+config SOC_SERIES_CH57X
+	bool "CH57X Series MCU"
+	select RISCV
+	select SOC_FAMILY_WCH_RISCV
+	select XIP
+	select RISCV_ISA_RV32I
+	select RISCV_ISA_EXT_M
+	select RISCV_ISA_EXT_A
+	select RISCV_ISA_EXT_C
+	help
+		Enable support for ch571, ch573.

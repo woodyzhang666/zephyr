@@ -1,0 +1,4 @@
+
+config BOARD_CH573_EVB
+	bool "CH573 EVB"
+	depends on SOC_CH573F

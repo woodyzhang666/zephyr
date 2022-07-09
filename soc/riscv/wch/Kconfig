@@ -1,0 +1,13 @@
+
+config SOC_FAMILY_WCH_RISCV
+	bool
+
+if SOC_FAMILY_WCH_RISCV
+
+config SOC_FAMILY
+	string
+	default "wch"
+
+source "soc/riscv/wch/*/Kconfig.soc"
+
+endif  # SOC_FAMILY_WCH_RISCV

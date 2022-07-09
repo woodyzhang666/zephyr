@@ -1,0 +1,21 @@
+
+#include <mem.h>
+#include <wch/ch57x/ch57x.dtsi>
+
+/ {
+	sram0: memory@20003800 {
+		reg = <0x20003800 DT_SIZE_K(18)>;
+	};
+
+	soc {
+		
+		flash-controller@40001800 {
+
+			flash0: flash@0 {
+				reg = <0x0 DT_SIZE_K(448)>;
+				//erase-block-size = <DT_SIZE_K(1)>;
+			};
+		};
+
+	};
+};
