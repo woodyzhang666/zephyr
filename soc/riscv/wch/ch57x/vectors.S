@@ -5,16 +5,14 @@
 GTEXT(__irq_wrapper)
 GTEXT(__initialize)
 
+/* Exports */
+GTEXT(__start)
+GTEXT(vector_base)
 
-.global  __start
-.section .vectors.start
-.balign   0x100
-.type     __start, @function
- 
-__start:
-.option push
+.section .vectors.start, "ax"
+.balign 0x4
 .option norvc
-.option norelax
+__start:
     li t0, 0x88
     csrs mstatus, t0
     la t0, vector_base
@@ -22,15 +20,8 @@ __start:
     csrw mtvec, t0
 	tail   __initialize
 
-.global  vector_base
-.section .vectors.exceptions
 .balign   0x10
-.type     vector_base, @function
- 
 vector_base:
-.option push
-.option norvc
-.option norelax
 	.word	0
 	.word	0
 		j	nmi_handler
