@@ -8,5 +8,6 @@ config SOC_SERIES_CH57X
 	select RISCV_ISA_EXT_M
 	select RISCV_ISA_EXT_A
 	select RISCV_ISA_EXT_C
+	select SYSCON
 	help
 		Enable support for ch571, ch573.

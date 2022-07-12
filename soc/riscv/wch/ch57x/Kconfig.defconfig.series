@@ -5,10 +5,13 @@ config SOC_SERIES
 	default "ch57x"
 
 config SYS_CLOCK_HW_CYCLES_PER_SEC
-	default 62914560
+	default 20971520
 
 config MAIN_STACK_SIZE
 	default 1024
+
+config SYSCON_INIT_PRIORITY
+	default 10
 
 if SOC_CH573F
 

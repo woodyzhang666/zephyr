@@ -1,5 +1,6 @@
 
 #include "skeleton.dtsi"
+#include <freq.h>
 
 / {
 	chosen {
@@ -20,25 +21,61 @@
 	sram0: memory@20003800 {
 		compatible = "mmio-sram";
 	};
+	
+	clocks {
+		clk_lsi: clk-lsi {
+			#clock-cells = <0>;
+			compatible = "fixed-clock";
+			clock-frequency = <32768>;
+			status = "disabled";
+		};
 
+		clk_lse: clk-lse {
+			#clock-cells = <0>;
+			compatible = "fixed-clock";
+			clock-frequency = <32768>;
+			status = "disabled";
+		};
+
+		clk_hse: clk-hse {
+			#clock-cells = <0>;
+			compatible = "fixed-clock";
+			clock-frequency = <DT_FREQ_M(32)>;
+			status = "disabled";
+		};
+
+		pll: pll {
+			#clock-cells = <0>;
+			compatible = "wch,ch57x-pll-clock";
+			mul = <15>;
+			clocks = <&clk_hse>;
+			status = "disabled";
+		};
+	};
 
 	soc {
 		#address-cells = <1>;
 		#size-cells = <1>;
 		compatible = "simple-bus";
-		interrupt-parent = <&fpic>;
+		interrupt-parent = <&pfic>;
 		ranges;
 
-		fpic: interrupt-controller@e000e000  {
+		syscon: syscon@40001000 {
+			compatible = "wch,ch57x-syscon";
+			reg = <0x40001000 0x400>;
+		};
+
+		pfic: interrupt-controller@e000e000  {
 			#address-cells = <1>;
-			compatible = "riscv,fpic";
+			compatible = "riscv,pfic";
 			reg = <0xe000e000 0x1000>;
 			interrupt-controller;
+			num-irq-priority-bits = <8>;
 			#interrupt-cells = <2>;
 		};
 
 		systick: timer@e000f000 {
-			compatible = "arm,armv7m-systick";
+			compatible = "wch,ch57x-systick";
 			reg = <0xe000f000 0x10>;
 		};
 
@@ -60,6 +97,39 @@
 			};
 		};
 
+		/* clk and pinctl */
+		uart0: uart@40003000 {
+			compatible = "wch,wch-uart";
+			reg = <0x40003000 0x400>;
+			interrupts = <10 0>;
+			label = "UART_0";
+			//support-half-duplex = <1>;
+			status = "disabled";
+		};
+
+		uart1: uart@40003400 {
+			compatible = "wch,wch-uart";
+			reg = <0x40003400 0x400>;
+			interrupts = <11 0>;
+			label = "UART_1";
+			status = "disabled";
+		};
+
+		uart2: uart@40003800 {
+			compatible = "wch,wch-uart";
+			reg = <0x40003800 0x400>;
+			interrupts = <17 0>;
+			label = "UART_2";
+			status = "disabled";
+		};
+
+		uart3: uart@40003c00 {
+			compatible = "wch,wch-uart";
+			reg = <0x40003C00 0x400>;
+			interrupts = <18 0>;
+			label = "UART_3";
+			status = "disabled";
+		};
 
 	};
 };

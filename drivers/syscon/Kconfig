@@ -39,4 +39,12 @@ config SYSCON_INIT_PRIORITY
 	  initialized earlier in the startup cycle. If unsure, leave at default
 	  value
 
+DT_COMPAT_CH57X_SYSCON := wch,ch57x-syscon
+
+config SYSCON_CH57X
+	bool "CH57X Series SYSCON driver"
+	default $(dt_compat_enabled,$(DT_COMPAT_CH57X_SYSCON))
+	help
+	  Enable SYSCON driver on ch57x series.
+
 endif # SYSCON
