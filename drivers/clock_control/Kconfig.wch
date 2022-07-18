@@ -1,0 +1,29 @@
+
+config CLOCK_CONTROL_WCH
+	bool "WCH Clock driver"
+	depends on SYSCON_CH57X
+	default y
+	help
+	  Enable support for WCH clock driver.
+
+if CLOCK_CONTROL_WCH
+
+DT_WCH_HSE_CLOCK := $(dt_nodelabel_path,clk_hse)
+DT_WCH_HSE_CLOCK_FREQ := $(dt_node_int_prop_int,$(DT_WCH_HSE_CLOCK),clock-frequency)
+
+config CLOCK_WCH_HSE_CLOCK
+	int "hse clock value"
+	default "$(DT_WCH_HSE_CLOCK_FREQ)" if "$(dt_nodelabel_enabled,clk_hse)"
+	default 32000000
+	help
+	  Value of external high-speed clock (HSE). This symbol could be optionally
+	  configured using device tree by setting "clock-frequency" value of clk_hse
+	  node. For instance:
+	  &clk_hse{
+	  status = "okay";
+	  clock-frequency = <DT_FREQ_M(25)>;
+	  };
+	  Note: Device tree configuration is overridden when current symbol is set:
+	  CONFIG_CLOCK_WCH_HSE_CLOCK=32000000
+
+endif

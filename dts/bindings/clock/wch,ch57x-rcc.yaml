@@ -1,0 +1,30 @@
+
+description: |
+  CH57X Clock controller
+  This node is in charge of system clock source selection and controlling
+  clocks for periphrals.
+
+  System clock source should be selected amongst the clock nodes available in
+  "clocks" node (one of "clk_hse", "clk_pll", "clk_ck32k").
+  Core clock frequency should also be defined, using "clock-frequency" property
+  if the source is pll because a prescaler from pll or hse is supported.
+
+compatible: "wch,ch57x-rcc"
+
+include: [clock-controller.yaml, base.yaml]
+
+properties:
+    reg:
+      required: false
+
+    "#clock-cells":
+      const: 1
+
+    clock-frequency:
+      required: true
+      type: int
+      description: |
+        default frequency in Hz for clock output
+
+clock-cells:
+  - bits

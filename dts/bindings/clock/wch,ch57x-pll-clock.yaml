@@ -1,0 +1,28 @@
+
+description: |
+  Take hse as input source, with a fixed mul of 15 (vendor does not recomend to
+  modify the register).
+
+compatible: "wch,ch57x-pll-clock"
+
+include: [clock-controller.yaml, base.yaml]
+
+properties:
+    "#clock-cells":
+      const: 0
+
+    clocks:
+      required: true
+
+    mul:
+      type: int
+      required: true
+      description: |
+          Main PLL multiplication factor for VCO
+          Valid range: 2 - 16
+
+    usbpre:
+      type: int
+      required: false
+      description: |
+          PLL divisor for usb clock

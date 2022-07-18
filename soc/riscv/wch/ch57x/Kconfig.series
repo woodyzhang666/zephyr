@@ -9,5 +9,6 @@ config SOC_SERIES_CH57X
 	select RISCV_ISA_EXT_A
 	select RISCV_ISA_EXT_C
 	select SYSCON
+	select CLOCK_CONTROL
 	help
 		Enable support for ch571, ch573.

@@ -5,7 +5,7 @@ config SOC_SERIES
 	default "ch57x"
 
 config SYS_CLOCK_HW_CYCLES_PER_SEC
-	default 20971520
+	default 20000000
 
 config MAIN_STACK_SIZE
 	default 1024
