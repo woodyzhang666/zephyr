@@ -1,0 +1,30 @@
+
+description: WCH GPIO node
+
+compatible: "wch,wch-gpio"
+
+include: [gpio-controller.yaml, base.yaml]
+
+properties:
+    reg:
+      required: false
+
+    label:
+      required: false
+
+    clocks:
+      required: false
+
+    pin-mask:
+      type: int
+      required: true
+      description: |
+          Mask of existing pins. Their numbers are not contiguous and ngpios
+          can't describe them.
+
+    "#gpio-cells":
+      const: 2
+
+gpio-cells:
+  - pin
+  - flags

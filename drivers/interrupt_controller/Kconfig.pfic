@@ -1,0 +1,14 @@
+
+DT_COMPAT_WCH_PFIC = wch,wch-pfic
+
+config HAS_WCH_PFIC
+	bool
+	help
+	  Indicate that the platform has PFIC.
+
+config WCH_PFIC
+	bool "Programmable Fast Interrupt Controller (PFIC)"
+	default $(dt_compat_enabled,$(DT_COMPAT_WCH_PFIC))
+	depends on HAS_WCH_PFIC
+	help
+	  Interrupt controller for Nuclei SoC core.

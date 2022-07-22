@@ -13,12 +13,14 @@ GTEXT(vector_base)
 .balign 0x4
 .option norvc
 __start:
-    li t0, 0x88
+    li t0, 0x1888	/* stay machine level after mret */
     csrs mstatus, t0
     la t0, vector_base
     ori t0, t0, 1
     csrw mtvec, t0
-	tail   __initialize
+	la t0, __initialize
+	csrw mepc, t0
+	mret		/* pfic will pop stack, sp should be checked */
 
 .balign   0x10
 vector_base:
@@ -34,11 +36,8 @@ vector_base:
     .word   0
     .word   0
     .word   0
-        j   systick_isr				/* SysTick Handler */
-    .word   0
-        j   sw_handler					/* SW Handler */
-    .word   0
+
     /* External Interrupts */
-	.rept (20)
+	.rept (24)
 		j	__irq_wrapper		/* 20 identical entries, all pointing to the interrupt handler */
 	.endr

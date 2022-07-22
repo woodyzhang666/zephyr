@@ -438,9 +438,6 @@ FUNC_NORETURN void z_cstart(void)
 	z_sys_init_run_level(_SYS_INIT_LEVEL_PRE_KERNEL_1);
 	z_sys_init_run_level(_SYS_INIT_LEVEL_PRE_KERNEL_2);
 	printk("hello: woody test !!!\n");
-	while(1){
-		;
-	}
 
 #ifdef CONFIG_STACK_CANARIES
 	uintptr_t stack_guard;

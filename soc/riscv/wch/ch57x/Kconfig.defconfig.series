@@ -19,7 +19,7 @@ config SOC
 	default "ch573f"
 
 config NUM_IRQS
-	default 20
+	default 36
 
 endif
 

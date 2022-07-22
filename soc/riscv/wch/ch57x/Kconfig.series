@@ -10,5 +10,7 @@ config SOC_SERIES_CH57X
 	select RISCV_ISA_EXT_C
 	select SYSCON
 	select CLOCK_CONTROL
+	select GPIO
+	select HAS_WCH_PFIC
 	help
 		Enable support for ch571, ch573.

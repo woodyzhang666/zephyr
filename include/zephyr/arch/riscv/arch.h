@@ -226,6 +226,13 @@ void nuclei_eclic_irq_priority_set(unsigned int irq, unsigned int prio, unsigned
 	Z_ISR_DECLARE(irq_p, 0, isr_p, isr_param_p); \
 	nuclei_eclic_irq_priority_set(irq_p, priority_p, flags_p); \
 }
+#elif defined(CONFIG_WCH_PFIC)
+void wch_pfic_irq_priority_set(unsigned int irq, unsigned int prio);
+#define ARCH_IRQ_CONNECT(irq_p, priority_p, isr_p, isr_param_p, flags_p) \
+{ \
+	Z_ISR_DECLARE(irq_p, 0, isr_p, isr_param_p); \
+	wch_pfic_irq_priority_set(irq_p, priority_p); \
+}
 #else
 #define ARCH_IRQ_CONNECT(irq_p, priority_p, isr_p, isr_param_p, flags_p) \
 { \

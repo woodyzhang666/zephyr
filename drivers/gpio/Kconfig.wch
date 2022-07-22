@@ -1,0 +1,7 @@
+
+config GPIO_WCH
+	bool "WCH GPIO"
+	depends on SYSCON_CH57X
+	default y
+	help
+	  Enables the WCH GPIO driver
