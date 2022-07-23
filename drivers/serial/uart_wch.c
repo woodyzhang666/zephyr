@@ -21,10 +21,10 @@ static inline int uart_wch_set_baudrate(const struct device *dev, uint32_t baudr
 	struct wch_uart *uart = (struct wch_uart *)(config->base);
 	struct uart_wch_data *data = dev->data;
 
-	uint32_t fsys = 20 * 1024 *1024;	/* TODO get from clock source */
+	uint32_t fsys = 20 * 1000 *1000;	/* TODO get from clock source */
 	uint8_t div = 1;
-	uart->div.divisor1 = div;
-	uart->dl.divisor2 = (uint16_t)((fsys * 2 / div / 16 + data->baudrate / 2) / data->baudrate);
+	uart->div = div;
+	uart->dl = (uint16_t)((fsys * 2 / div / 16 + data->baudrate / 2) / data->baudrate);
 	return 0;
 }
 
@@ -41,9 +41,9 @@ static int uart_wch_poll_in(const struct device *dev, unsigned char *c)
 	struct wch_uart *uart = (struct wch_uart *)(config->base);
 
 	/* err flags are RZ */
-	struct uart_lsr lsr = uart->lsr;
+	union uart_lsr lsr = uart->lsr;
 	if (lsr.data_rdy) {
-		*c = uart->rbr.val;
+		*c = uart->rbr;
 		return 0;
 	} else {
 		return -1;
@@ -65,7 +65,7 @@ static void uart_wch_poll_out(const struct device *dev, unsigned char c)
 		}
 	}
 
-	uart->thr.val = (uint8_t)c;
+	uart->thr= (uint8_t)c;
 	irq_unlock(key);
 }
 
@@ -75,7 +75,7 @@ static int uart_wch_err_check(const struct device *dev)
 	struct wch_uart *uart = (struct wch_uart *)(config->base);
 	int err = 0;
 
-	struct uart_lsr lsr = uart->lsr;
+	union uart_lsr lsr = uart->lsr;
 	if (lsr.rx_overflow)
 		err |= UART_ERROR_OVERRUN;
 
@@ -99,7 +99,7 @@ static int uart_wch_configure(const struct device *dev,
 	struct wch_uart *uart = (struct wch_uart *)(config->base);
 	struct uart_wch_data *data = dev->data;
 
-	struct uart_lcr lcr = uart->lcr;
+	union uart_lcr lcr = uart->lcr;
 
 	switch (cfg->parity) {
 		case UART_CFG_PARITY_NONE:
@@ -171,13 +171,13 @@ static int uart_wch_configure(const struct device *dev,
 		data->baudrate = cfg->baudrate;
 	}
 
-	struct uart_fcr fcr = uart->fcr;
+	union uart_fcr fcr = uart->fcr;
 	fcr.rx_fifo_clr = True;
 	fcr.tx_fifo_clr = True;
 	uart->fcr = fcr;
 
-	/* read to clear */
-	struct uart_lsr lsr __unused = uart->lsr;
+	/* read to clear error flags */
+	union uart_lsr lsr __unused = uart->lsr;
 
 	return 0;
 }
@@ -191,7 +191,7 @@ static int uart_wch_config_get(const struct device *dev,
 
 	cfg->baudrate = data->baudrate;
 
-	struct uart_lcr lcr = uart->lcr;
+	union uart_lcr lcr = uart->lcr;
 	switch (lcr.word_sz) {
 		case UART_LCR_WORD_SZ_5_BIT:
 			cfg->data_bits = UART_CFG_DATA_BITS_5;
@@ -289,7 +289,7 @@ static int uart_wch_init(const struct device *dev)
 
 	uart->ier.uart_reset = True;
 
-	struct uart_lcr lcr = {0};
+	union uart_lcr lcr = {0};
 	if (config->parity == 2) {
 		/* 8 data bits, 1 parity bit, parity even */
 		lcr.parity_en = True;
@@ -306,13 +306,13 @@ static int uart_wch_init(const struct device *dev)
 
 	uart->lcr = lcr;
 
-	struct uart_mcr mcr = {0};
+	union uart_mcr mcr = {0};
 	if (config->hw_flow_control) {
 		mcr.hw_flow_ctrl = True;
 	}
 	uart->mcr = mcr;
 
-	struct uart_fcr fcr = {
+	union uart_fcr fcr = {
 		.fifo_en = True,
 		.fifo_trig = UART_FIFO_TRIG_4_BYTES,
 		.tx_fifo_clr = True,

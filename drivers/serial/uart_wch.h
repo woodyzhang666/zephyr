@@ -8,36 +8,45 @@
 /* register definitions */
 
 /* Modem Control Register */
-struct uart_mcr {
-	uint8_t dtr : 1;
-	uint8_t rts	: 1;
-	uint8_t out1 : 1;
-	uint8_t int_oe : 1;				/* interrupt out enable, for modem only ? */
-	uint8_t loop : 1;				/* internal loopback */
-	uint8_t hw_flow_ctrl : 1;
-	uint8_t dtr_indicate_tx : 1;
-	uint8_t half_duplex : 1;		/* half duplex mode */
+union uart_mcr {
+	struct {
+		volatile uint8_t dtr : 1;
+		volatile uint8_t rts	: 1;
+		volatile uint8_t out1 : 1;
+		volatile uint8_t int_oe : 1;				/* interrupt out enable, for modem only ? */
+		volatile uint8_t loop : 1;				/* internal loopback */
+		volatile uint8_t hw_flow_ctrl : 1;
+		volatile uint8_t dtr_indicate_tx : 1;
+		volatile uint8_t half_duplex : 1;		/* half duplex mode */
+	};
+	volatile uint8_t val;
 } __attribute__ ((packed));
 
 /* Interrupt Enabling Register */
-struct uart_ier {
-	uint8_t recv_rdy_ie : 1;		/* recv data interrupt enable */
-	uint8_t thr_empty_ie : 1;		/* tx holding reg empty interrupt enable */
-	uint8_t line_stat_ie : 1;		/* rx link stat interrupt enable */
-	uint8_t modem_chg_ie : 1;		/* modem input state change interrupt enable */
-	uint8_t dtr_output_en : 1;
-	uint8_t rts_output_en : 1;
-	uint8_t txd_output_en : 1;
-	uint8_t uart_reset : 1;
+union uart_ier {
+	struct {
+		volatile uint8_t recv_rdy_ie : 1;		/* recv data interrupt enable */
+		volatile uint8_t thr_empty_ie : 1;		/* tx holding reg empty interrupt enable */
+		volatile uint8_t line_stat_ie : 1;		/* rx link stat interrupt enable */
+		volatile uint8_t modem_chg_ie : 1;		/* modem input state change interrupt enable */
+		volatile uint8_t dtr_output_en : 1;
+		volatile uint8_t rts_output_en : 1;
+		volatile uint8_t txd_output_en : 1;
+		volatile uint8_t uart_reset : 1;
+	};
+	volatile uint8_t val;
 } __attribute__ ((packed));
 
 /* FIFO Control Register */
-struct uart_fcr {
-	uint8_t fifo_en : 1;
-	uint8_t rx_fifo_clr	: 1;
-	uint8_t tx_fifo_clr : 1;
-	uint8_t rsvd : 3;
-	uint8_t fifo_trig : 2;
+union uart_fcr {
+	struct {
+		volatile uint8_t fifo_en : 1;
+		volatile uint8_t rx_fifo_clr	: 1;
+		volatile uint8_t tx_fifo_clr : 1;
+		volatile uint8_t rsvd : 3;
+		volatile uint8_t fifo_trig : 2;
+	};
+	volatile uint8_t val;
 } __attribute__ ((packed));
 
 enum uart_fcr_fifo_trig {
@@ -48,13 +57,16 @@ enum uart_fcr_fifo_trig {
 };
 
 /* Link Control Register */
-struct uart_lcr {
-	uint8_t word_sz : 2;
-	uint8_t stop_bits : 1;
-	uint8_t parity_en : 1;
-	uint8_t parity_mode : 2;
-	uint8_t break_en : 1;
-	uint8_t gp_bit : 1;
+union uart_lcr {
+	struct {
+		volatile uint8_t word_sz : 2;
+		volatile uint8_t stop_bits : 1;
+		volatile uint8_t parity_en : 1;
+		volatile uint8_t parity_mode : 2;
+		volatile uint8_t break_en : 1;
+		volatile uint8_t gp_bit : 1;
+	};
+	volatile uint8_t val;
 } __attribute__ ((packed));
 
 enum uart_lcr_word_sz {
@@ -77,11 +89,14 @@ enum uart_lcr_parity_mode {
 };
 
 /* Interrupt Id Register */
-struct uart_iir {
-	uint8_t no_int : 1;
-	uint8_t int_type : 3;
-	uint8_t _rsvd : 2;
-	uint8_t fifo_status : 2;
+union uart_iir {
+	struct {
+		volatile uint8_t no_int : 1;
+		volatile uint8_t int_type : 3;
+		volatile uint8_t _rsvd : 2;
+		volatile uint8_t fifo_status : 2;
+	};
+	volatile uint8_t val;
 } __attribute__ ((packed));
 
 enum uart_iir_int_type {
@@ -101,90 +116,74 @@ enum uart_iir_fifo_status {
 /* Link Status Regsiter: RO/RZ
  * Read LSR to clear RX LINK ERR interrupt.
  */
-struct uart_lsr {
-	volatile uint8_t data_rdy : 1;
-	volatile uint8_t rx_overflow : 1;
-	volatile uint8_t parity_err : 1;
-	volatile uint8_t frame_err : 1;
-	volatile uint8_t break_err : 1;
-	volatile uint8_t tx_fifo_empty : 1;
-	volatile uint8_t thr_tsr_both_emtpy : 1;
-	volatile uint8_t err_in_rx_fifo : 1;
+union uart_lsr {
+	struct {
+		volatile uint8_t data_rdy : 1;
+		volatile uint8_t rx_overflow : 1;
+		volatile uint8_t parity_err : 1;
+		volatile uint8_t frame_err : 1;
+		volatile uint8_t break_err : 1;
+		volatile uint8_t tx_fifo_empty : 1;
+		volatile uint8_t thr_tsr_both_emtpy : 1;
+		volatile uint8_t err_in_rx_fifo : 1;
+	};
+	volatile uint8_t val;
 } __attribute__ ((packed));
 
 /* Modem Status Register */
-struct uart_msr {
-	uint8_t cts_changed : 1;
-	uint8_t dsr_changed : 1;
-	uint8_t ri_changed : 1;
-	uint8_t dcd_changed : 1;
-	uint8_t cts_valid : 1;
-	uint8_t dsr_valid : 1;
-	uint8_t ri_valid : 1;
-	uint8_t dcd_valid : 1;
-} __attribute__ ((packed));
-
-/* Receive Buffer Register: RO */
-struct uart_rbr {
-	uint8_t val;					/* read to get 1 byte from rx fifo */
-} __attribute__ ((packed));
-
-/* Transmission Holding Register: WO */
-struct uart_thr {
-	uint8_t val;					/* write to put 1 byte into tx fifo */
-} __attribute__ ((packed));
-
-/* Receive FIFO Count */
-struct uart_rfc {
-	uint8_t val;					/* rx fifo data count */
-} __attribute__ ((packed));
-
-/* Transmission FIFO Count */
-#define R8_UART_TFC					0x0B
-struct uart_tfc {
-	uint8_t val;					/* tx fifo data count */
-} __attribute__ ((packed));
-
-/* Divisor Lock */
-struct uart_dl {
-	uint16_t divisor2;
-} __attribute__ ((packed));
-
-/* Pre-Divisor */
-struct uart_div {
-	uint8_t divisor1;
+union uart_msr {
+	struct {
+		volatile uint8_t cts_changed : 1;
+		volatile uint8_t dsr_changed : 1;
+		volatile uint8_t ri_changed : 1;
+		volatile uint8_t dcd_changed : 1;
+		volatile uint8_t cts_valid : 1;
+		volatile uint8_t dsr_valid : 1;
+		volatile uint8_t ri_valid : 1;
+		volatile uint8_t dcd_valid : 1;
+	};
+	volatile uint8_t val;
 } __attribute__ ((packed));
 
 /* Baudrate Calculation Method:
  * Baudrate = Fsys * 2 / uart_div / 16 / uart_dl
  */
 
-/* slave address in 485 ? */
-struct uart_adr {
-	uint8_t val;					/* slave address */
-} __attribute__ ((packed));
-
 struct wch_uart {
-	struct uart_mcr mcr;			/* 0x00 */
-	struct uart_ier ier;			/* 0x01 */
-	struct uart_fcr fcr;			/* 0x02 */
-	struct uart_lcr lcr;			/* 0x03 */
-	struct uart_iir iir;			/* 0x04 */
-	struct uart_lsr lsr;			/* 0x05 */
-	struct uart_msr msr;			/* 0x06 */
+	union uart_mcr mcr;			/* 0x00 */
+	union uart_ier ier;			/* 0x01 */
+	union uart_fcr fcr;			/* 0x02 */
+	union uart_lcr lcr;			/* 0x03 */
+	union uart_iir iir;			/* 0x04 */
+	union uart_lsr lsr;			/* 0x05 */
+	union uart_msr msr;			/* 0x06 */
 	uint8_t _rsvd1;
 	union {							/* 0x08 */
-		struct uart_rbr rbr;
-		struct uart_thr thr;
+		volatile uint8_t rbr;			/* Receive Buffer Register: RO */
+		volatile uint8_t thr;			/* Transmission Holding Register: WO */
 	};
 	uint8_t _rsvd2;
-	struct uart_rfc rfc;			/* 0x0A */
-	struct uart_tfc tfc;			/* 0x0B */
-	struct uart_dl  dl;				/* 0x0C two bytes */
-	struct uart_div div;			/* 0x0E */
-	struct uart_adr adr;			/* 0x0F */
+	volatile uint8_t rfc;				/* 0x0A Rx FIFO Count */
+	volatile uint8_t tfc;				/* 0x0B Tx FIFO Count*/
+	volatile uint16_t dl;				/* 0x0C Divisor lock */
+	volatile uint8_t div;				/* 0x0E Pre-Divisor */
+	volatile uint8_t adr;				/* 0x0F Slave address in 485 ? */
 } __attribute__ ((packed));
 
+BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->mcr) == 0x00);
+BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->ier) == 0x01);
+BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->fcr) == 0x02);
+BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->lcr) == 0x03);
+BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->iir) == 0x04);
+BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->lsr) == 0x05);
+BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->msr) == 0x06);
+BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->rbr) == 0x08);
+BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->thr) == 0x08);
+BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->rfc) == 0x0A);
+BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->tfc) == 0x0B);
+BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->dl) == 0x0C);
+BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->div) == 0x0E);
+BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->adr) == 0x0F);
 
 struct uart_wch_config {
 	/* base address of registers */

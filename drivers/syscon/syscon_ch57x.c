@@ -43,6 +43,7 @@ int syscon_write_prot_reg(const struct device *dev, uint16_t reg, uint32_t val, 
 /* pll cfg is propritory */
 static int syscon_ch57x_init(const struct device *dev)
 {
+#if 0
 	/* enable pll power, power of external osc is enabled by default */
 	uint8_t pwr_ctl = (RB_CLK_PLL_ON_MSK << RB_CLK_PLL_ON_POS) | \
 					  (RB_CLK_XT32M_PON_MSK << RB_CLK_XT32M_PON_POS);
@@ -54,6 +55,7 @@ static int syscon_ch57x_init(const struct device *dev)
 	uint16_t clk_sel = (24 << RB_CLK_PLL_DIV_POS) | \
 					(RB_CLK_SYS_MOD_PLL << RB_CLK_SYS_MOD_POS);
 	syscon_write_prot_reg(dev, R16_CLK_SYS_CFG, clk_sel, sizeof(clk_sel));
+#endif
 
 #if 1
 	/* rx: pa8, tx: pa9 */
@@ -64,6 +66,14 @@ static int syscon_ch57x_init(const struct device *dev)
 	*addr |= (1U << 9);
 	addr= (volatile uint32_t *)0x400010b0;	/* pu */
 	*addr |= (1U << 8);
+
+	addr= (volatile uint32_t *)0x400010a8;	/* out 1 first */
+	*addr |= (1U << 5);
+	addr= (volatile uint32_t *)0x400010a0;	/* dir */
+	*addr |= (1U << 5);
+	addr= (volatile uint32_t *)0x400010b0;	/* pu */
+	*addr |= (1U << 4);
+
 #endif
 
 
