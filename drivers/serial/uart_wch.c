@@ -480,6 +480,7 @@ static int uart_wch_init(const struct device *dev)
 
 #if defined(CONFIG_UART_INTERRUPT_DRIVEN) || defined(CONFIG_UART_ASYNC_API)
 	config->irq_config_func(dev);
+	uart->mcr.int_oe = 1;	/* enable uart interrupt capability */
 #endif
 
 #ifdef CONFIG_UART_ASYNC_API

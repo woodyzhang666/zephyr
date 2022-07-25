@@ -13,7 +13,7 @@ union uart_mcr {
 		volatile uint8_t dtr : 1;
 		volatile uint8_t rts	: 1;
 		volatile uint8_t out1 : 1;
-		volatile uint8_t int_oe : 1;				/* interrupt out enable, for modem only ? */
+		volatile uint8_t int_oe : 1;			/* interrupt out enable, Not modem only, fxxk ! */
 		volatile uint8_t loop : 1;				/* internal loopback */
 		volatile uint8_t hw_flow_ctrl : 1;
 		volatile uint8_t dtr_indicate_tx : 1;
