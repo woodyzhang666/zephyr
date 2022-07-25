@@ -89,7 +89,6 @@
 			rcc: rcc {
 				#clock-cells = <1>;
 				compatible = "wch,ch57x-rcc";
-				status = "disabled";
 			};
 
 			pinctrl: pinctrl {

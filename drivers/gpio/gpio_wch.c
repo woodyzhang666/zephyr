@@ -50,8 +50,8 @@ static int gpio_wch_port_set_masked_raw(const struct device *dev,
 	uint32_t port_value;
 
 	k_spinlock_key_t key = k_spin_lock(&gpio_spinlock);
-	port_value = *(uint32_t *)R32_PX_OUT(port);
-	*(uint32_t *)R32_PX_OUT(port) = (port_value & ~mask) | (mask & value);
+	port_value = *(volatile uint32_t *)R32_PX_OUT(port);
+	*(volatile uint32_t *)R32_PX_OUT(port) = (port_value & ~mask) | (mask & value);
 	k_spin_unlock(&gpio_spinlock, key);
 
 	return 0;
@@ -65,7 +65,7 @@ static int gpio_wch_port_set_bits_raw(const struct device *dev,
 	int port = config->gpio_port;
 
 	k_spinlock_key_t key = k_spin_lock(&gpio_spinlock);
-	*(uint32_t *)R32_PX_OUT(port) |= pins;
+	*(volatile uint32_t *)R32_PX_OUT(port) |= pins;
 	k_spin_unlock(&gpio_spinlock, key);
 
 	return 0;
@@ -78,7 +78,7 @@ static int gpio_wch_port_clear_bits_raw(const struct device *dev,
 	int port = config->gpio_port;
 
 	k_spinlock_key_t key = k_spin_lock(&gpio_spinlock);
-	*(uint32_t *)R32_PX_CLR(port) = pins;
+	*(volatile uint32_t *)R32_PX_CLR(port) = pins;
 	k_spin_unlock(&gpio_spinlock, key);
 
 	return 0;
@@ -91,7 +91,7 @@ static int gpio_wch_port_toggle_bits(const struct device *dev,
 	int port = config->gpio_port;
 
 	k_spinlock_key_t key = k_spin_lock(&gpio_spinlock);
-	*(uint32_t *)R32_PX_OUT(port) ^= pins;
+	*(volatile uint32_t *)R32_PX_OUT(port) ^= pins;
 	k_spin_unlock(&gpio_spinlock, key);
 
 	return 0;
@@ -106,26 +106,26 @@ static int gpio_wch_configure(const struct device *dev, gpio_pin_t pin,
 
 	k_spinlock_key_t key = k_spin_lock(&gpio_spinlock);
 	if (flags & GPIO_PULL_UP) {
-		*(uint32_t *)R32_PX_PU(port) |= BIT(pin);
+		*(volatile uint32_t *)R32_PX_PU(port) |= BIT(pin);
 	} else {
-		*(uint32_t *)R32_PX_PU(port) &= ~BIT(pin);
+		*(volatile uint32_t *)R32_PX_PU(port) &= ~BIT(pin);
 	}
 
 	if (flags & GPIO_OUTPUT) {
 		if (flags & GPIO_OUTPUT_INIT_HIGH) {
-			*(uint32_t *)R32_PX_OUT(port) |= BIT(pin);
+			*(volatile uint32_t *)R32_PX_OUT(port) |= BIT(pin);
 		} else if (flags & GPIO_OUTPUT_INIT_LOW) {
-			*(uint32_t *)R32_PX_OUT(port) &= ~BIT(pin);
+			*(volatile uint32_t *)R32_PX_OUT(port) &= ~BIT(pin);
 		}
-		*(uint32_t *)R32_PX_DIR(port) |= BIT(pin);
+		*(volatile uint32_t *)R32_PX_DIR(port) |= BIT(pin);
 	} else {
-		*(uint32_t *)R32_PX_DIR(port) &= ~BIT(pin);
+		*(volatile uint32_t *)R32_PX_DIR(port) &= ~BIT(pin);
 	}
 
 	if (flags & GPIO_PULL_DOWN && !(flags & GPIO_OUTPUT)) {
-		*(uint32_t *)R32_PX_PD_DRV(port) |= BIT(pin);
+		*(volatile uint32_t *)R32_PX_PD_DRV(port) |= BIT(pin);
 	} else {
-		*(uint32_t *)R32_PX_PD_DRV(port) &= ~BIT(pin);
+		*(volatile uint32_t *)R32_PX_PD_DRV(port) &= ~BIT(pin);
 	}
 	k_spin_unlock(&gpio_spinlock, key);
 
@@ -137,38 +137,39 @@ static int gpio_wch_pin_interrupt_configure(const struct device *dev,
 {
 	const struct gpio_wch_config *config = dev->config;
 	int port = config->gpio_port;
-	uint32_t mask = WCH_GPIO_INT_BIT(pin);
+	uint16_t mask = WCH_GPIO_INT_BIT(pin);
 	int ret = 0;
 
 	k_spinlock_key_t key = k_spin_lock(&gpio_spinlock);
 
 	if (mode == GPIO_INT_MODE_DISABLED) {
-		*(uint16_t *)R16_PX_INT_EN(port) &= ~mask;
-		/* TODO disable int in pfic */
+		*(volatile uint16_t *)R16_PX_INT_EN(port) &= ~mask;
 		goto exit;
 	}
 
 	if (mode == GPIO_INT_MODE_LEVEL) {
-		*(uint16_t *)R16_PX_INT_MODE(port) &= ~mask;
+		*(volatile uint16_t *)R16_PX_INT_MODE(port) &= ~mask;
 	} else if (mode == GPIO_INT_MODE_EDGE) {
-		*(uint16_t *)R16_PX_INT_MODE(port) |= mask;
+		*(volatile uint16_t *)R16_PX_INT_MODE(port) |= mask;
 	} else {
-		// ??
+		printk("unsupport gpio int mode 0x%08x\n", mode);
 	}
 
 	switch (trig) {
 		case GPIO_INT_TRIG_LOW:
-			*(uint32_t *)R32_PX_OUT(port) &= ~BIT(pin);
+			*(volatile uint32_t *)R32_PX_OUT(port) &= ~BIT(pin);
 			break;
 		case GPIO_INT_TRIG_HIGH:
-			*(uint32_t *)R32_PX_OUT(port) |= BIT(pin);
+			*(volatile uint32_t *)R32_PX_OUT(port) |= BIT(pin);
 			break;
 		default:
 			ret = -ENOTSUP;
 	}
-	*(uint16_t *)R16_PX_INT_EN(port) |= mask;
-	/* TODO enable int in pfic */
+	*(volatile uint16_t *)R16_PX_INT_EN(port) |= mask;
 
+	printk("enable int on pin %d: %s, %s\n", pin,
+			mode == GPIO_INT_MODE_EDGE ? "edge" : "level",
+			trig == GPIO_INT_TRIG_LOW ? "low" : "high");
 exit:
 	k_spin_unlock(&gpio_spinlock, key);
 
@@ -189,7 +190,7 @@ static uint32_t gpio_wch_get_pending_int(const struct device *dev)
 	const struct gpio_wch_config *config = dev->config;
 	int port = config->gpio_port;
 
-	uint16_t mask = *(uint16_t *)R16_PX_INT_IF(port);
+	uint16_t mask = *(volatile uint16_t *)R16_PX_INT_IF(port);
 	uint32_t interrupted_pins;
 	if (port == 1) {
 		interrupted_pins = (uint32_t)(mask & 0xfcff);
@@ -208,11 +209,13 @@ static uint32_t gpio_wch_get_pending_int(const struct device *dev)
 static void gpio_wch_isr(void *param)
 {
 	const struct device *dev = param;
-	const struct gpio_wch_config *const config = dev->config;
+	const struct gpio_wch_config *config = dev->config;
 	int port = config->gpio_port;
 	struct gpio_wch_data *data = dev->data;
 
-	uint16_t mask = *(uint16_t *)R16_PX_INT_IF(port);
+	uint16_t mask = *(volatile uint16_t *)R16_PX_INT_IF(port);
+	*(volatile uint16_t *)R16_PX_INT_IF(port) = mask;
+
 	uint32_t interrupted_pins;
 	if (port == 1) {
 		interrupted_pins = (uint32_t)(mask & 0xfcff);
@@ -223,7 +226,6 @@ static void gpio_wch_isr(void *param)
 	} else {
 		interrupted_pins = (uint32_t)mask;
 	}
-		
 	if (interrupted_pins != 0) {
 		gpio_fire_callbacks(&data->cb, dev, interrupted_pins);
 	}
@@ -232,6 +234,9 @@ static void gpio_wch_isr(void *param)
 static int gpio_wch_init(const struct device *dev)
 {
 	const struct gpio_wch_config *config = dev->config;
+	int port = config->gpio_port;
+
+	*(volatile uint16_t *)R16_PX_INT_IF(port) = 0xffff;
 
 	config->irq_config_func(dev);
 
@@ -250,8 +255,6 @@ static const struct gpio_driver_api gpio_wch_driver_api = {
 	.get_pending_int = gpio_wch_get_pending_int
 };
 
-#define WCH_GPIO_IRQ_HANDLER_DECL(index)				\
-	static void gpio_wch_irq_config_func_##index(const struct device *dev);
 #define WCH_GPIO_IRQ_HANDLER(index)					\
 static void gpio_wch_irq_config_func_##index(const struct device *dev)	\
 {									\
@@ -262,31 +265,26 @@ static void gpio_wch_irq_config_func_##index(const struct device *dev)	\
 	irq_enable(DT_INST_IRQN(index));				\
 }
 
-#define WCH_GPIO_IRQ_HANDLER_FUNC(index)				\
-	.irq_config_func = gpio_wch_irq_config_func_##index,
-
-
 #define WCH_SOC_GPIO_INIT(_id)	\
 								\
-WCH_GPIO_IRQ_HANDLER_DECL(_id);	\
-								\
 WCH_GPIO_IRQ_HANDLER(_id);		\
-	static struct gpio_wch_data gpio_data_##_id;	\
-	static struct gpio_wch_config gpio_config_##_id = {			\
-		.drv_cfg = {							\
-			.port_pin_mask = DT_PROP(DT_NODELABEL(gpio##_id), pin_mask),	\
-		},								\
-		.gpio_port = _id,	\
-		WCH_GPIO_IRQ_HANDLER_FUNC(_id)		\
-	};									\
-	DEVICE_DT_DEFINE(DT_NODELABEL(gpio##_id),				\
-			&gpio_wch_init,					\
-			NULL,							\
-			&gpio_data_##_id,					\
-			&gpio_config_##_id,					\
-			PRE_KERNEL_1,						\
-			CONFIG_GPIO_INIT_PRIORITY,				\
-			&gpio_wch_driver_api);
+								\
+static struct gpio_wch_data gpio_data_##_id;	\
+static struct gpio_wch_config gpio_config_##_id = {			\
+	.drv_cfg = {							\
+		.port_pin_mask = DT_PROP(DT_NODELABEL(gpio##_id), pin_mask),	\
+	},								\
+	.gpio_port = _id,	\
+	.irq_config_func = gpio_wch_irq_config_func_##_id\
+};									\
+DEVICE_DT_DEFINE(DT_NODELABEL(gpio##_id),				\
+		&gpio_wch_init,					\
+		NULL,							\
+		&gpio_data_##_id,					\
+		&gpio_config_##_id,					\
+		PRE_KERNEL_1,						\
+		CONFIG_GPIO_INIT_PRIORITY,				\
+		&gpio_wch_driver_api);
 
 DT_INST_FOREACH_STATUS_OKAY(WCH_SOC_GPIO_INIT);
 

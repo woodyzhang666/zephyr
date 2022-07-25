@@ -4,8 +4,11 @@ if SOC_SERIES_CH57X
 config SOC_SERIES
 	default "ch57x"
 
+DT_WCH_RCC:= $(dt_nodelabel_path,rcc)
+DT_WCH_SYSCLK_FREQ := $(dt_node_int_prop_int,$(DT_WCH_RCC),clock-frequency)
+
 config SYS_CLOCK_HW_CYCLES_PER_SEC
-	default 20000000
+	default $(DT_WCH_SYSCLK_FREQ)
 
 config MAIN_STACK_SIZE
 	default 1024

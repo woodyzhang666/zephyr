@@ -50,7 +50,7 @@ union uart_fcr {
 } __attribute__ ((packed));
 
 enum uart_fcr_fifo_trig {
-	UART_FIFO_TRIG_1_BYTE = 0,
+	UART_FIFO_TRIG_1_BYTES = 0,
 	UART_FIFO_TRIG_2_BYTES = 1,
 	UART_FIFO_TRIG_4_BYTES = 2,
 	UART_FIFO_TRIG_7_BYTES = 3,
@@ -188,7 +188,10 @@ BUILD_ASSERT((uint32_t)(&((struct wch_uart *)0)->adr) == 0x0F);
 struct uart_wch_config {
 	/* base address of registers */
 	void *base;
+	/* clock device */
+	const struct device *clock;
 	/* initial hardware flow control, 1 for RTS/CTS */
+	uint32_t clock_mask;	/* clock arg. should be parsed by clock driver */
 	bool hw_flow_control;
 	/* initial parity, 0 for none, 1 for odd, 2 for even */
 	int  parity;
@@ -201,8 +204,6 @@ struct uart_wch_config {
 
 struct uart_wch_data {
 	uint32_t baudrate;
-	/* clock device */
-	const struct device *clock;
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 	uart_irq_callback_user_data_t user_cb;
 	void *user_data;
