@@ -1,0 +1,16 @@
+
+description: WCH USB controller
+
+compatible: "wch,wch-usbhd"
+
+include: [usb-ep.yaml, pinctrl-device.yaml]
+
+properties:
+    reg:
+      required: true
+
+    interrupts:
+      required: true
+
+    clocks:
+      required: true

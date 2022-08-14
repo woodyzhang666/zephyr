@@ -16,19 +16,53 @@
 
 	leds {
 		compatible = "gpio-leds";
-		green_led_1: led_1 {
+
+		conn_led: conn_led {
 			gpios = <&gpio1 7 GPIO_ACTIVE_LOW>;
-			label = "User LD1";
+			label = "CONN_LED";
 		};
-		user_button1: button_1 {
-			label = "User SW1";
+		run_led: run_len {
+			gpios = <&gpio1 12 GPIO_ACTIVE_LOW>;
+			label = "RUN_LED";
+		};
+
+		nreset: nreset {
+			gpios = <&gpio1 13 (GPIO_OPEN_DRAIN | GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "nRESET";
+		};
+
+		swclk_tck: swclk_tck {
+			gpios = <&gpio0 12 (GPIO_PUSH_PULL)>;
+			label = "SWCLK_TCK";
+		};
+
+		swdio_tms_in: swdio_tms_in {
+			gpios = <&gpio0 13 0>;
+			label = "SWDIO_TMS_IN";
+		};
+
+		swdio_tms_out: swdio_tms_out {
+			gpios = <&gpio0 14 (GPIO_PULL_UP)>;
+			label = "SWDIO_TMS_OUT";
+		};
+
+		tdi: tdi {
+			gpios = <&gpio0 15 (GPIO_PULL_UP)>;
+			label = "TDI";
+		};
+
+		tdo: tdo {
+			gpios = <&gpio0 5 (GPIO_PULL_UP)>;
+			label = "TDO";
+		};
+
+		pwr_sw: pwr_sw {
 			gpios = <&gpio1 4 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Target Power Switch";
 		};
 	};
 
 	aliases {
-		led0 = &green_led_1;
-		sw0 = &user_button1;
 	};
 
 };
@@ -57,12 +91,10 @@
 };
 
 &uart1 {
-	current-speed = <115200>;
+	current-speed = <2500000>;
 	status = "okay";
 };
 
-&uart3 {
-	current-speed = <115200>;
+zephyr_udc0: &usbhd0 {
 	status = "okay";
 };
-

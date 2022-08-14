@@ -13,7 +13,7 @@
 
 		cpu@0 {
 			device_type = "cpu";
-			compatible = "risvc,rv3a";
+			compatible = "wch,risc-v3a";
 			reg = <0>;
 		};
 	};
@@ -228,7 +228,8 @@
 		usbhd0: usbhd@40008000 {
 			compatible = "wch,wch-usbhd";
 			reg = <0x40008000 0x400>;
-			interrupts = <32 0>;
+			interrupts = <22 0>;
+			num-bidir-endpoints = <5>;
 			clocks = <&rcc 0x1000>;
 			label = "USBHD_0";
 			status = "disabled";
