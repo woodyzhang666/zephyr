@@ -1,14 +1,8 @@
 
-#include <mem.h>
-#include <wch/ch57x/ch57x.dtsi>
+#include <wch/ch57x/ch58x.dtsi>
 
 / {
-	sram0: memory@20003800 {
-		reg = <0x20003800 DT_SIZE_K(18)>;
-	};
-
 	soc {
-		
 		flash-controller@40001800 {
 
 			flash0: flash@0 {
@@ -16,10 +10,8 @@
 				//erase-block-size = <DT_SIZE_K(1)>;
 			};
 		};
-
 	};
 };
-
 
 &gpio0 {
 	pin-mask = <0x00ffff>;
@@ -28,3 +20,5 @@
 &gpio1 {
 	pin-mask = <0xffffff>;
 };
+
+

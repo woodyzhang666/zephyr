@@ -1,0 +1,6 @@
+if BOARD_CH582M_EVB
+
+config BOARD
+	default "ch582m_evb"
+
+endif

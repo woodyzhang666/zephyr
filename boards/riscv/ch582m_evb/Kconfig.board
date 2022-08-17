@@ -1,0 +1,4 @@
+
+config BOARD_CH582M_EVB
+	bool "CH572M EVB"
+	depends on SOC_CH582M

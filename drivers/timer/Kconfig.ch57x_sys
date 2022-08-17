@@ -1,9 +1,22 @@
 
+DT_COMPAT_WCH_CH57X_SYSTICK := wch,ch57x-systick
+
 config CH57X_SYSTICK
 	bool "ch57x SYSTICK timer"
 	depends on SOC_SERIES_CH57X
-	default y
+	default $(dt_compat_enabled,$(DT_COMPAT_WCH_CH57X_SYSTICK))
 	select TICKLESS_CAPABLE
 	select SYSTEM_TIMER_HAS_DISABLE_SUPPORT
 	help
 	  This option enables count-down systick timer on ch57x series.
+
+DT_COMPAT_WCH_CH58X_SYSTICK := wch,ch58x-systick
+
+config CH58X_SYSTICK
+	bool "ch58x SYSTICK timer"
+	depends on SOC_SERIES_CH57X
+	default $(dt_compat_enabled,$(DT_COMPAT_WCH_CH58X_SYSTICK))
+	select TICKLESS_CAPABLE
+	select SYSTEM_TIMER_HAS_DISABLE_SUPPORT
+	help
+	  This option enables count-down systick timer on ch58x series.

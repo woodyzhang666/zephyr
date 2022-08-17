@@ -1,0 +1,10 @@
+
+#include <wch/ch57x/ch58x.dtsi>
+
+&gpio0 {
+	pin-mask = <0x00ffff>;
+};
+
+&gpio1 {
+	pin-mask = <0xffffff>;
+};

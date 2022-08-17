@@ -6,4 +6,7 @@ choice
 config SOC_CH573F
 	bool "CH573F"
 
+config SOC_CH582M
+	bool "CH582M"
+
 endchoice

@@ -26,4 +26,14 @@ config NUM_IRQS
 
 endif
 
+if SOC_CH582M
+
+config SOC
+	default "ch582m"
+
+config NUM_IRQS
+	default 36
+
+endif
+
 endif
