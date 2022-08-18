@@ -68,7 +68,6 @@ struct usb_dc_wch_state {
         uint8_t ep_buf[EP_MPS * 2];
     } ep123_buf[3];
 #endif
-    volatile struct wch_usb *usb;
     uint8_t address;
 	uint8_t attached : 1;
 	uint8_t update_address :1;	/* set address after IN transaction */
@@ -86,6 +85,7 @@ static struct usb_dc_wch_ep_state *usb_dc_wch_get_ep_state(uint8_t ep)
 	if (USB_EP_GET_IDX(ep) >= USB_NUM_BIDIR_ENDPOINTS) {
 		return NULL;
 	}
+	
 
 	if (USB_EP_DIR_IS_OUT(ep)) {
 		ep_state_base = usb_dc_wch_state.out_ep_state;
@@ -137,84 +137,89 @@ static int setup_req_to_host;
 static void usb_dc_wch_isr(const void *arg)
 {
 	ARG_UNUSED(arg);
+	uint8_t rx_len;
 
 
+#if 0
 	if (!usb_dc_wch_state.attached) {
 		LOG_ERR("USB interrupt occurred while device is detached");
 	}
+#endif
 
 	while(1) {
-		volatile union wch_usb_int_flag int_flag = usb_dc_wch_state.usb->int_flag;
-		volatile union wch_usb_int_status int_status = usb_dc_wch_state.usb->int_status;
-		volatile union wch_usb_misc_status misc_status = usb_dc_wch_state.usb->misc_status;
+		uint32_t status = *(volatile uint32_t *)(USB_REG_BASE + R32_USB_STATUS);
+		uint8_t stat = (uint8_t)(status >> 24);
+		uint8_t flag = (uint8_t)(status >> 16);
+		//uint8_t misc_stat = (uint8_t)(status >> 8);
 
-		if (int_flag.val & 0x1f) {
-			//usb_dc_wch_state.usb->int_flag.val = int_flag.val;
+		if (flag & MASK_UIF_FLAGS) {
+			// pull up gpio a5 */
 			*(volatile uint32_t *)0x400010a8 &= ~(1UL << 5);
 		} else {
 			break;
 		}
 
-		LOG_DBG("int flag: 0x%02x, int_status: 0x%02x, misc status: 0x%02x", int_flag.val, int_status.val, misc_status.val);
+		LOG_DBG("usb status: 0x%08x", status);
 		
-		if (int_flag.xmit_done) {
+		if (flag & RB_UIF_TRANSFER) {
 			LOG_DBG("XMIT event");
 
-			if (int_status.token_pid != WCH_USB_TOKEN_NONE) {
-				uint8_t ep_idx = int_status.ep_idx;
-				switch (int_status.token_pid) {
-					case WCH_USB_TOKEN_OUT:
-						LOG_DBG("epnum 0x%02x, rx_count %u", ep_idx, usb_dc_wch_state.usb->rx_len);
+			if (flag & RB_U_IS_NAK)
+				goto out;
+
+			if ((stat & MASK_UIS_TOKEN) != (WCH_USB_TOKEN_NONE << POS_UIS_TOKEN)) {
+				uint8_t ep_idx = (stat & MASK_UIS_ENDP) >> POS_UIS_ENDP;
+				switch (stat & MASK_UIS_TOKEN) {
+					case WCH_USB_TOKEN_OUT << POS_UIS_TOKEN:
+						rx_len = *(volatile uint8_t *)(USB_REG_BASE + R8_USB_RX_LEN);
+
+						LOG_DBG("epnum 0x%02x, rx_count %u", ep_idx, rx_len);
 
 						if (ep_idx == 0 && setup_req_to_host) {
-							usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.rx_tog = 0;
-							usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.tx_tog = 0;
-							usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.tx_resp = USB_RESP_NAK;
-							usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.rx_resp = USB_RESP_ACK;
+							/* status stage */
+							*(volatile uint8_t *)(USB_REG_BASE + R8_UEP0_CTRL) = (USB_RESP_NAK << POS_UEP_T_RES) | (USB_RESP_ACK << POS_UEP_R_RES);
 						} else {
-							usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.rx_tog = !usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.rx_tog;
+							*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx)) ^= RB_UEP_R_TOG;
 						}
-						if (ep_idx != 0 && !int_status.toggle_ok) {
+						if (ep_idx != 0 && !(stat & RB_UIS_TOG_OK)) {
 							LOG_ERR("Toggle not OK!");
 						}
-						usb_dc_wch_state.out_ep_state[ep_idx].read_count = usb_dc_wch_state.usb->rx_len;
+						usb_dc_wch_state.out_ep_state[ep_idx].read_count = rx_len;
 						usb_dc_wch_state.out_ep_state[ep_idx].read_offset = 0;
 
 						if (usb_dc_wch_state.out_ep_state[ep_idx].cb) {
 							usb_dc_wch_state.out_ep_state[ep_idx].cb(ep_idx | USB_EP_DIR_OUT, USB_DC_EP_DATA_OUT);
 						}
 						break;
-					case WCH_USB_TOKEN_IN:
+					case WCH_USB_TOKEN_IN << POS_UIS_TOKEN:
 						LOG_DBG("epnum 0x%02x tx", ep_idx);
 						k_sem_give(&(usb_dc_wch_state.in_ep_state->write_sem));		/* allow next ep write */
 
 						if (usb_dc_wch_state.update_address) {
-							usb_dc_wch_state.usb->adr.addr = usb_dc_wch_state.address;
+							uint8_t address = *(volatile uint8_t *)(USB_REG_BASE + R8_USB_DEV_AD);
+							address = (address & (~MASK_USB_ADD)) | (usb_dc_wch_state.address & MASK_USB_ADD);
+							*(volatile uint8_t *)(USB_REG_BASE + R8_USB_DEV_AD) = address;
 							usb_dc_wch_state.update_address = 0;
 						}
 
 						if (ep_idx == 0 && !setup_req_to_host) {
-							usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.rx_tog = 0;
-							usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.tx_tog = 0;
-							usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.tx_resp = USB_RESP_NAK;
-							usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.rx_resp = USB_RESP_ACK;
+							*(volatile uint8_t *)(USB_REG_BASE + R8_UEP0_CTRL) = (USB_RESP_NAK << POS_UEP_T_RES) | (USB_RESP_ACK << POS_UEP_R_RES);
 						} else {
-							usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.tx_tog = !usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.tx_tog;
+							*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx)) ^= RB_UEP_T_TOG;
 						}
 
 						if (usb_dc_wch_state.in_ep_state[ep_idx].cb) {
 							usb_dc_wch_state.in_ep_state[ep_idx].cb(ep_idx | USB_EP_DIR_IN, USB_DC_EP_DATA_IN);
 						}
 						break;
-					case WCH_USB_TOKEN_SOF:
+					case WCH_USB_TOKEN_SOF << POS_UIS_TOKEN:
 						usb_dc_wch_state.status_cb(USB_DC_SOF, NULL);
 						/* TODO */
 						break;
 				}
-			} else if (int_status.setup_ack) {
+			} else if (stat & RB_UIS_SETUP_ACT) {
 				/* setup transaction force datax to data1, don't check toggle ok here */
-				usb_dc_wch_state.usb->ep_tx_len_ctrl[0].ep_ctrl.tx_tog = 1;
-				usb_dc_wch_state.usb->ep_tx_len_ctrl[0].ep_ctrl.rx_tog = 1;
+				*(volatile uint8_t *)(USB_REG_BASE + R8_UEP0_CTRL) |= RB_UEP_T_TOG | RB_UEP_R_TOG;
 
 				setup_req_to_host = *get_ep_buf(USB_CONTROL_EP_OUT) & 0x80;		/* assume little endian */
 
@@ -226,7 +231,7 @@ static void usb_dc_wch_isr(const void *arg)
 			}
 		}
 
-		if (int_flag.bus_reset) {
+		if (flag & RB_UIF_BUS_RST) {
 			LOG_DBG("USB RESET event");
 
 			/* Inform upper layers */
@@ -235,7 +240,7 @@ static void usb_dc_wch_isr(const void *arg)
 			}
 
 			/* Clear device address during reset. */
-			usb_dc_wch_state.usb->adr.addr = 0;
+			*(volatile uint8_t *)(USB_REG_BASE + R8_USB_DEV_AD) &= ~MASK_USB_ADD;
 			usb_dc_wch_state.address = 0;
 
 			reenable_all_endpoints();
@@ -271,8 +276,9 @@ static void usb_dc_wch_isr(const void *arg)
 #endif
 
 		/* host sof, host nak, fifo ov */
-
-		usb_dc_wch_state.usb->int_flag.val = int_flag.val;
+out:
+		*(volatile uint8_t *)(USB_REG_BASE + R8_USB_INT_FG) = MASK_UIF_FLAGS << POS_UIF_FLAGS;
+		/* pull up gpio a5, for debug */
 		*(volatile uint32_t *)0x400010a8 |= (1UL << 5);
 	}
 
@@ -281,13 +287,16 @@ static void usb_dc_wch_isr(const void *arg)
 int usb_dc_attach(void)
 {
 	LOG_DBG("try to attach");
-    usb_dc_wch_state.usb->adr.val = 0;
 
-	usb_dc_wch_state.usb->dev_ctrl.port_en = 1;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_DEV_AD) &= ~MASK_USB_ADD;
+
+	*(volatile uint8_t *)(USB_REG_BASE + R8_UDEV_CTRL) |= RB_UD_PORT_EN;
 
 	usb_dc_wch_state.attached = 1;
     //pull up dp, then interrupts is coming
-    usb_dc_wch_state.usb->ctrl.sys_ctrl =  WCH_USB_SYSCTL_ENABLE_USB_AND_DP_PU;
+	uint8_t ctrl = *(volatile uint8_t *)(USB_REG_BASE + R8_USB_CTRL);
+	ctrl = (ctrl & (~MASK_UC_SYS_CTRL)) | (WCH_USB_SYSCTL_ENABLE_USB_AND_DP_PU << POS_UC_SYS_CTRL);
+	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_CTRL) = ctrl;
 
 	return 0;
 }
@@ -413,11 +422,13 @@ int usb_dc_ep_set_stall(const uint8_t ep)
 
     int ep_idx = USB_EP_GET_IDX(ep);
 
+	uint8_t ep_ctrl = *(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx));
 	if (USB_EP_DIR_IS_OUT(ep)) {
-        usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.rx_resp = USB_RESP_STALL;
+		ep_ctrl = (ep_ctrl & (~MASK_UEP_R_RES)) | (USB_RESP_STALL << POS_UEP_R_RES);
     } else {
-        usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.tx_resp = USB_RESP_STALL;
+		ep_ctrl = (ep_ctrl & (~MASK_UEP_T_RES)) | (USB_RESP_STALL << POS_UEP_T_RES);
     }
+	*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx)) = ep_ctrl;
 
 	ep_state->ep_stalled = 1U;
 
@@ -436,11 +447,13 @@ int usb_dc_ep_clear_stall(const uint8_t ep)
 
     int ep_idx = USB_EP_GET_IDX(ep);
 
+	uint8_t ep_ctrl = *(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx));
 	if (USB_EP_DIR_IS_OUT(ep)) {
-        usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.rx_resp = USB_RESP_ACK;
+		ep_ctrl = (ep_ctrl & (~MASK_UEP_R_RES)) | (USB_RESP_ACK << POS_UEP_R_RES);
     } else {
-        usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.tx_resp = USB_RESP_NAK;
+		ep_ctrl = (ep_ctrl & (~MASK_UEP_T_RES)) | (USB_RESP_NAK << POS_UEP_T_RES);
     }
+	*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx)) = ep_ctrl;
 
 	ep_state->ep_stalled = 0U;
 	ep_state->read_count = 0U;
@@ -478,17 +491,17 @@ int usb_dc_ep_enable(const uint8_t ep)
 
 	/* all eps are always enabled. just tweak the repsonse here */
 
+	uint8_t ep_ctrl = *(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx));
 	if (USB_EP_DIR_IS_OUT(ep)) {
-		usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.rx_resp = USB_RESP_ACK;
-        usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.rx_tog = 0;
+		ep_ctrl = (ep_ctrl & (~(MASK_UEP_R_RES | RB_UEP_R_TOG))) | (USB_RESP_ACK << POS_UEP_R_RES);
     } else {
 		if (ep_state->ep_type == WCH_EP_TYPE_ISOC) {
-			usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.tx_resp = USB_RESP_NO_RESP;
+			ep_ctrl = (ep_ctrl & (~(MASK_UEP_T_RES | RB_UEP_T_TOG))) | (USB_RESP_NO_RESP << POS_UEP_T_RES);
 		} else {
-			usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.tx_resp = USB_RESP_NAK;
+			ep_ctrl = (ep_ctrl & (~(MASK_UEP_T_RES | RB_UEP_T_TOG))) | (USB_RESP_NAK << POS_UEP_T_RES);
 		}
-        usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.tx_tog = 0;
     }
+	*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx)) = ep_ctrl;
 
 	ep_state->ep_enabled = 1;
 	/* clear stall, and reset to data0 */
@@ -511,11 +524,13 @@ int usb_dc_ep_disable(const uint8_t ep)
     int ep_idx = USB_EP_GET_IDX(ep);
 
 	/* all eps are always enabled, so we just let them response NAK/Stall? */
+	uint8_t ep_ctrl = *(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx));
 	if (USB_EP_DIR_IS_OUT(ep)) {
-		usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.rx_resp = USB_RESP_NAK;
+		ep_ctrl = (ep_ctrl & (~MASK_UEP_R_RES)) | (USB_RESP_NAK << POS_UEP_R_RES);
     } else {
-		usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.tx_resp = USB_RESP_NAK;
+		ep_ctrl = (ep_ctrl & (~MASK_UEP_T_RES)) | (USB_RESP_NAK << POS_UEP_T_RES);
     }
+	*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx)) = ep_ctrl;
 
 	ep_state->ep_enabled = 0;
 
@@ -553,8 +568,10 @@ int usb_dc_ep_write(const uint8_t ep, const uint8_t *const data,
 	}
 
 	memcpy(buf, data, len);
-	usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].tx_len = len;
-	usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.tx_resp = USB_RESP_ACK;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_T_LEN(ep_idx)) = len;
+	uint8_t ep_ctrl = *(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx));
+	ep_ctrl = (ep_ctrl & (~MASK_UEP_T_RES)) | (USB_RESP_ACK << POS_UEP_T_RES);
+	*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx)) = ep_ctrl;
 
 #if 0	// TODO
 	if (!ret && ep == EP0_IN && len > 0) {
@@ -626,7 +643,9 @@ int usb_dc_ep_read_continue(uint8_t ep)
 {
 	uint8_t ep_idx = USB_EP_GET_IDX(ep);
 
-	usb_dc_wch_state.usb->ep_tx_len_ctrl[ep_idx].ep_ctrl.rx_resp = USB_RESP_ACK;
+	uint8_t ep_ctrl = *(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx));
+	ep_ctrl = (ep_ctrl & (~MASK_UEP_R_RES)) | (USB_RESP_ACK << POS_UEP_R_RES);
+	*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx)) = ep_ctrl;
 
 	return 0;
 }
@@ -676,13 +695,15 @@ int usb_dc_ep_mps(const uint8_t ep)
 
 int usb_dc_detach(void)
 {
-    usb_dc_wch_state.usb->adr.val = 0;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_DEV_AD) &= ~MASK_USB_ADD;
 
 	usb_dc_wch_state.attached = 0;
     //pull dp down, while leave usb enabled
-    usb_dc_wch_state.usb->ctrl.sys_ctrl =  WCH_USB_SYSCTL_ENABLE_USB;
+	uint8_t ctrl = *(volatile uint8_t *)(USB_REG_BASE + R8_USB_CTRL);
+	ctrl = (ctrl & (~MASK_UC_SYS_CTRL)) | (WCH_USB_SYSCTL_ENABLE_USB << POS_UC_SYS_CTRL);
+	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_CTRL) = ctrl;
 
-	usb_dc_wch_state.usb->dev_ctrl.port_en = 0;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_UDEV_CTRL) &= ~RB_UD_PORT_EN;
 
 	return 0;
 }
@@ -707,94 +728,54 @@ static int usb_dc_wch_init(const struct device *dev)
 
     /* TODO pinctrl, hardcoded in syscon */
 
-    usb_dc_wch_state.usb = (struct wch_usb *)USB_REG_BASE;
-
 	/* reset and deassert */
-	union wch_usb_ctrl wch_usb_ctrl = {0};
-	wch_usb_ctrl.clr_fifo = 1;
-	wch_usb_ctrl.reset_sie = 1;
-	usb_dc_wch_state.usb->ctrl = wch_usb_ctrl;
-
-	wch_usb_ctrl.clr_fifo = 0;
-	wch_usb_ctrl.reset_sie = 0;
-	usb_dc_wch_state.usb->ctrl = wch_usb_ctrl;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_CTRL) = RB_UC_CLR_ALL | RB_UC_RESET_SIE;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_CTRL) = 0;
 
 	/* For a pair of IN/OUT eps, disabling OUT ep changes dma buf addr of IN
 	 * ep, and they may be used in different interfaces and decoupled modules,
 	 * so we always enable all eps */
-	union wch_usb_ep4_1_mod wch_usb_ep4_1_mod = {0};
-	wch_usb_ep4_1_mod.ep4_tx_en = 1;
-	wch_usb_ep4_1_mod.ep4_rx_en = 1;
 #ifdef DUAL_BUFFER
-	wch_usb_ep4_1_mod.ep1_dual_buf = 1;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_UEP4_1_MOD) = RB_UEP4_TX_EN | RB_UEP4_RX_EN | RB_UEP1_BUF_MOD | RB_UEP1_TX_EN | RB_UEP1_RX_EN;
 #else
-	wch_usb_ep4_1_mod.ep1_dual_buf = 0;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_UEP4_1_MOD) = RB_UEP4_TX_EN | RB_UEP4_RX_EN | RB_UEP1_TX_EN | RB_UEP1_RX_EN;
 #endif
-	wch_usb_ep4_1_mod.ep1_tx_en = 1;
-	wch_usb_ep4_1_mod.ep1_rx_en = 1;
-	usb_dc_wch_state.usb->ep4_1_mod = wch_usb_ep4_1_mod;
 
-	union wch_usb_ep2_3_mod wch_usb_ep2_3_mod = {0};
-	wch_usb_ep2_3_mod.ep2_tx_en = 1;
-	wch_usb_ep2_3_mod.ep2_rx_en = 1;
-	wch_usb_ep2_3_mod.ep3_tx_en = 1;
-	wch_usb_ep2_3_mod.ep3_rx_en = 1;
 #ifdef DUAL_BUFFER
-	wch_usb_ep2_3_mod.ep2_dual_buf = 1;
-	wch_usb_ep2_3_mod.ep3_dual_buf = 1;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_UEP2_3_MOD) = RB_UEP2_BUF_MOD | RB_UEP2_TX_EN | RB_UEP2_RX_EN | RB_UEP3_BUF_MOD | RB_UEP3_TX_EN | RB_UEP3_RX_EN;
 #else
-	wch_usb_ep2_3_mod.ep2_dual_buf = 0;
-	wch_usb_ep2_3_mod.ep3_dual_buf = 0;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_UEP2_3_MOD) = RB_UEP2_TX_EN | RB_UEP2_RX_EN | RB_UEP3_TX_EN | RB_UEP3_RX_EN;
 #endif
-	usb_dc_wch_state.usb->ep2_3_mod = wch_usb_ep2_3_mod;
 
 	/* set up all endpoints' dma buffers */
-	usb_dc_wch_state.usb->ep_dma_addr[0].val = (uint16_t)(uint32_t)&(usb_dc_wch_state.ep_0_4_buf[0]);
-	usb_dc_wch_state.usb->ep_dma_addr[1].val = (uint16_t)(uint32_t)&(usb_dc_wch_state.ep123_buf[0]);
-	usb_dc_wch_state.usb->ep_dma_addr[2].val = (uint16_t)(uint32_t)&(usb_dc_wch_state.ep123_buf[1]);
-	usb_dc_wch_state.usb->ep_dma_addr[3].val = (uint16_t)(uint32_t)&(usb_dc_wch_state.ep123_buf[2]);
+	*(volatile uint16_t *)(USB_REG_BASE + R16_UEP0_DMA) = (uint16_t)(uint32_t)&(usb_dc_wch_state.ep_0_4_buf[0]);
+	*(volatile uint16_t *)(USB_REG_BASE + R16_UEP1_DMA) = (uint16_t)(uint32_t)&(usb_dc_wch_state.ep123_buf[0]);
+	*(volatile uint16_t *)(USB_REG_BASE + R16_UEP2_DMA) = (uint16_t)(uint32_t)&(usb_dc_wch_state.ep123_buf[1]);
+	*(volatile uint16_t *)(USB_REG_BASE + R16_UEP3_DMA) = (uint16_t)(uint32_t)&(usb_dc_wch_state.ep123_buf[2]);
 
 	for (i = 0; i < 5; i++) {
-		struct wch_usb_ep_tx_len_ctrl wch_usb_ep_tx_len_ctrl = {0};
-		wch_usb_ep_tx_len_ctrl.ep_ctrl.tx_resp = USB_RESP_NAK;
-		wch_usb_ep_tx_len_ctrl.ep_ctrl.rx_resp = USB_RESP_NAK;
 #ifdef DUAL_BUFFER
-		wch_usb_ep_tx_len_ctrl.ep_ctrl.auto_toggle = 1;		/* TODO, auto toggling is not associated with DUAL BUFFER */
+		*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(i)) = (USB_RESP_NAK << POS_UEP_T_RES) | (USB_RESP_NAK << POS_UEP_R_RES) | RB_UEP_AUTO_TOG;
 #else
-		wch_usb_ep_tx_len_ctrl.ep_ctrl.auto_toggle = 0;
+		*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(i)) = (USB_RESP_NAK << POS_UEP_T_RES) | (USB_RESP_NAK << POS_UEP_R_RES);
 #endif
-		wch_usb_ep_tx_len_ctrl.ep_ctrl.tx_tog = 0;
-		wch_usb_ep_tx_len_ctrl.ep_ctrl.rx_tog = 0;
-		usb_dc_wch_state.usb->ep_tx_len_ctrl[i] = wch_usb_ep_tx_len_ctrl;
 	}
 
-    usb_dc_wch_state.usb->adr.val = 0;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_DEV_AD) = 0;
 
 	/* enable usb, but don't attach */
-    wch_usb_ctrl.int_busy = 1;	/* resp NAK after entering interrupt. How about set resp ACK in ISR */
-    wch_usb_ctrl.sys_ctrl = WCH_USB_SYSCTL_ENABLE_USB;
-    wch_usb_ctrl.dma_en = 1;
-	usb_dc_wch_state.usb->ctrl = wch_usb_ctrl;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_CTRL) = RB_UC_DMA_EN | RB_UC_INT_BUSY | (WCH_USB_SYSCTL_ENABLE_USB << UC_SYS_CTRL_POS);
 
 	/* clear stale interrupts */
-    usb_dc_wch_state.usb->int_flag.val = 0xff;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_INT_FG) = 0xFF;
 
-	union wch_usb_dev_ctrl wch_usb_dev_ctrl = {0};
-    wch_usb_dev_ctrl.port_en = 0;
-    wch_usb_dev_ctrl.low_speed = 0;
-    wch_usb_dev_ctrl.disable_pd = 1;
-    usb_dc_wch_state.usb->dev_ctrl = wch_usb_dev_ctrl;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_UDEV_CTRL) =  RB_UD_PD_DIS;
 
-	union wch_usb_int_en wch_usb_int_en = {0};
-    wch_usb_int_en.bus_reset = 1;
-    wch_usb_int_en.xmit_done = 1;
-    //wch_usb_int_en.suspend = 1;
-    wch_usb_int_en.fifo_ov = 1;
-    wch_usb_int_en.nak = 1;
 #ifdef CONFIG_USB_DEVICE_SOF
-    wch_usb_int_en.sof = 1;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_INT_EN) = RB_UIE_BUS_RST | RB_UIE_TRANSFER | RB_UIE_FIFO_OV | RB_UIE_DEV_NAK | RB_UIE_DEV_SOF;
+#else
+	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_INT_EN) = RB_UIE_BUS_RST | RB_UIE_TRANSFER | RB_UIE_FIFO_OV | RB_UIE_DEV_NAK;
 #endif
-	usb_dc_wch_state.usb->int_en = wch_usb_int_en;
 
 	/* use the semaphore to control refilling of IN buf */
 	for (i = 0U; i < USB_NUM_BIDIR_ENDPOINTS; i++) {
@@ -802,7 +783,7 @@ static int usb_dc_wch_init(const struct device *dev)
 	}
 
 	/* clear stale interrupts */
-    usb_dc_wch_state.usb->int_flag.val = 0xff;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_INT_FG) = 0xFF;
 
 	IRQ_CONNECT(USB_IRQ, USB_IRQ_PRI, usb_dc_wch_isr, 0, 0);
 	irq_enable(USB_IRQ);

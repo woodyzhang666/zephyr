@@ -26,7 +26,7 @@ union wch_usb_ctrl {
 #define RB_UC_DMA_EN		0x01
 #define RB_UC_CLR_ALL		0x02
 #define RB_UC_RESET_SIE		0x04
-#define RB_UC_INT_BUSY		0x08
+#define RB_UC_INT_BUSY		0x08	/* resp NAK after entering interrupt. How about set resp ACK in ISR */
 #define MASK_UC_SYS_CTRL	0x30
 #define POS_UC_SYS_CTRL		4
 #define UC_SYS_CTRL_POS		0x4
@@ -127,6 +127,8 @@ union wch_usb_int_flag {
 #define RB_U_SIE_FREE		0x20
 #define RB_U_TOG_OK			0x40	/* datax tog ok */
 #define RB_U_IS_NAK			0x80	/* current transfer is NAKed */
+#define MASK_UIF_FLAGS		0x1F
+#define POS_UIF_FLAGS		0
 
 union wch_usb_int_status {
     struct {
@@ -279,6 +281,9 @@ struct wch_usb_ep_tx_len_ctrl {
 #define R8_UEP7_T_LEN	0x6C
 #define R8_UEP7_CTRL	0x6E
 
+#define R8_UEPx_T_LEN(x)	((x < 5) ? (0x20 + x * 0x4) : (0x50 + x * 0x4))
+#define R8_UEPx_CTRL(x)		((x < 5) ? (0x22 + x * 0x4) : (0x52 + x * 0x4))
+
 #define MASK_UEP_T_RES	0x03
 #define POS_UEP_T_RES	0
 #define MASK_UEP_R_RES	0x0C
@@ -286,6 +291,7 @@ struct wch_usb_ep_tx_len_ctrl {
 #define RB_UEP_AUTO_TOG 0x10
 #define RB_UEP_T_TOG	0x40
 #define RB_UEP_R_TOG	0x80
+
 
 enum usb_resp {
     USB_RESP_ACK = 0,

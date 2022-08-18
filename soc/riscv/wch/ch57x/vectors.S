@@ -38,6 +38,10 @@ vector_base:
     .word   0
 
     /* External Interrupts */
-	.rept (24)
+	.rept (10)
+		j	__irq_wrapper		/* 20 identical entries, all pointing to the interrupt handler */
+	.endr
+	    j   __usb_irq_wrapper
+	.rept (13)
 		j	__irq_wrapper		/* 20 identical entries, all pointing to the interrupt handler */
 	.endr

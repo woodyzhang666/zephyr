@@ -12,5 +12,6 @@ config SOC_SERIES_CH57X
 	select CLOCK_CONTROL
 	select GPIO
 	select HAS_WCH_PFIC
+	select ARCH_HAS_RAMFUNC_SUPPORT
 	help
 		Enable support for ch571, ch573.
