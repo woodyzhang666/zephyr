@@ -383,6 +383,9 @@ static void usb_handle_control_transfer(uint8_t ep,
 		/* Send more data if available */
 		if (usb_dev.data_buf_residue != 0 || usb_dev.zlp_flag == true) {
 			usb_data_to_host();
+		} else {
+			/* get status from host */
+			usb_dc_ep_read_continue(USB_CONTROL_EP_OUT);
 		}
 	} else {
 		__ASSERT_NO_MSG(false);

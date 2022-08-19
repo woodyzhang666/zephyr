@@ -30,7 +30,7 @@ SECTION_FUNC(exception.other, hardfault_handler)
 SECTION_FUNC(exception.other, sw_handler)
 1:  j 1b
 
-SECTION_FUNC(exception.other, __usb_irq_wrapper)
+SECTION_FUNC(ramfunc, __usb_irq_wrapper)
 	la t0, _sw_isr_table
 	li a0, 22 << (2 + 1)
 	add t0, t0, a0

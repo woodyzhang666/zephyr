@@ -82,7 +82,7 @@
 		timer0: timer@40002000 {
 			compatible = "wch,wch-timer";
 			reg = <0x40002000 0x400>;
-			interrupts = <16 0>;
+			interrupts = <16 0x80>;
 			clocks = <&rcc 0x0001>;
 			label = "TIMER_0";
 			status = "disabled";
@@ -91,7 +91,7 @@
 		timer1: timer@40002400 {
 			compatible = "wch,wch-timer";
 			reg = <0x40002400 0x400>;
-			interrupts = <24 0>;
+			interrupts = <24 0x80>;
 			clocks = <&rcc 0x0002>;
 			label = "TIMER_1";
 			status = "disabled";
@@ -100,7 +100,7 @@
 		timer2: timer@40002800 {
 			compatible = "wch,wch-timer";
 			reg = <0x40002800 0x400>;
-			interrupts = <25 0>;
+			interrupts = <25 0x80>;
 			clocks = <&rcc 0x0004>;
 			label = "TIMER_2";
 			status = "disabled";
@@ -109,7 +109,7 @@
 		timer3: timer@40002c00 {
 			compatible = "wch,wch-timer";
 			reg = <0x40002c00 0x400>;
-			interrupts = <32 0>;
+			interrupts = <32 0x80>;
 			clocks = <&rcc 0x0008>;
 			label = "TIMER_3";
 			status = "disabled";
@@ -120,7 +120,7 @@
 		uart0: uart@40003000 {
 			compatible = "wch,wch-uart";
 			reg = <0x40003000 0x400>;
-			interrupts = <26 0>;
+			interrupts = <26 0x80>;
 			clocks = <&rcc 0x0010>;
 			label = "UART_0";
 			//support-half-duplex = <1>;
@@ -130,7 +130,7 @@
 		uart1: uart@40003400 {
 			compatible = "wch,wch-uart";
 			reg = <0x40003400 0x400>;
-			interrupts = <27 0>;
+			interrupts = <27 0x80>;
 			clocks = <&rcc 0x0020>;
 			label = "UART_1";
 			status = "disabled";
@@ -139,7 +139,7 @@
 		uart2: uart@40003800 {
 			compatible = "wch,wch-uart";
 			reg = <0x40003800 0x400>;
-			interrupts = <33 0>;
+			interrupts = <33 0x80>;
 			clocks = <&rcc 0x0040>;
 			label = "UART_2";
 			status = "disabled";
@@ -148,7 +148,7 @@
 		uart3: uart@40003c00 {
 			compatible = "wch,wch-uart";
 			reg = <0x40003C00 0x400>;
-			interrupts = <34 0>;
+			interrupts = <34 0x80>;
 			clocks = <&rcc 0x0080>;
 			label = "UART_3";
 			status = "disabled";
@@ -157,7 +157,7 @@
 		spi0: spi@40004000 {
 			compatible = "wch,wch-spi";
 			reg = <0x40004000 0x400>;
-			interrupts = <19 0>;
+			interrupts = <19 0x80>;
 			clocks = <&rcc 0x0100>;
 			label = "SPI_0";
 			support-dma = <1>;
@@ -168,7 +168,7 @@
 		pwm: pwm@40005000 {
 			compatible = "wch,wch-pwm";
 			reg = <0x40005000 0x400>;
-			interrupts = <31 0>;
+			interrupts = <31 0x80>;
 			clocks = <&rcc 0x0400>;
 			label = "PWM";
 			status = "disabled";
@@ -177,7 +177,7 @@
 		usbhd0: usbhd@40008000 {
 			compatible = "wch,wch-usbhd";
 			reg = <0x40008000 0x400>;
-			interrupts = <22 0>;
+			interrupts = <22 0x00>;
 			//num-bidir-endpoints = <5>;
 			clocks = <&rcc 0x1000>;
 			label = "USBHD_0";
@@ -187,7 +187,7 @@
 		ble: ble@4000c000 {
 			compatible = "wch,ch57x-ble";
 			reg = <0x4000c000 0x400>;
-			interrupts = <20 0 21 0>;
+			interrupts = <20 0x80 21 0x80>;
 			clocks = <&rcc 0x8000>;
 			lable = "BLE";
 			status = "disabled";

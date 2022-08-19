@@ -134,17 +134,15 @@ static inline uint8_t *get_ep_buf(uint8_t ep)
 
 static int setup_req_to_host;
 
-static void usb_dc_wch_isr(const void *arg)
+__ramfunc static void usb_dc_wch_isr(const void *arg)
 {
 	ARG_UNUSED(arg);
 	uint8_t rx_len;
 
 
-#if 0
 	if (!usb_dc_wch_state.attached) {
 		LOG_ERR("USB interrupt occurred while device is detached");
 	}
-#endif
 
 	while(1) {
 		uint32_t status = *(volatile uint32_t *)(USB_REG_BASE + R32_USB_STATUS);
@@ -169,6 +167,12 @@ static void usb_dc_wch_isr(const void *arg)
 
 			if ((stat & MASK_UIS_TOKEN) != (WCH_USB_TOKEN_NONE << POS_UIS_TOKEN)) {
 				uint8_t ep_idx = (stat & MASK_UIS_ENDP) >> POS_UIS_ENDP;
+
+				/* close tx/rx. let this tranfer handler decide to open next transfer */
+				uint8_t ep_ctrl = *(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx));
+				ep_ctrl = (ep_ctrl & (~(MASK_UEP_T_RES | MASK_UEP_R_RES))) | (USB_RESP_NAK << POS_UEP_T_RES) | (USB_RESP_NAK << POS_UEP_R_RES);
+				*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx)) = ep_ctrl;
+
 				switch (stat & MASK_UIS_TOKEN) {
 					case WCH_USB_TOKEN_OUT << POS_UIS_TOKEN:
 						rx_len = *(volatile uint8_t *)(USB_REG_BASE + R8_USB_RX_LEN);
@@ -568,6 +572,7 @@ int usb_dc_ep_write(const uint8_t ep, const uint8_t *const data,
 	}
 
 	memcpy(buf, data, len);
+
 	*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_T_LEN(ep_idx)) = len;
 	uint8_t ep_ctrl = *(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx));
 	ep_ctrl = (ep_ctrl & (~MASK_UEP_T_RES)) | (USB_RESP_ACK << POS_UEP_T_RES);
@@ -784,6 +789,11 @@ static int usb_dc_wch_init(const struct device *dev)
 
 	/* clear stale interrupts */
 	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_INT_FG) = 0xFF;
+
+	extern void __usb_irq_wrapper(void);
+	/* vector table free interrupt */
+	*(volatile uint8_t *)(0xE000E050) = 22;
+	*(volatile uint32_t *)(0xE000E060) = (uint32_t)__usb_irq_wrapper + 1;
 
 	IRQ_CONNECT(USB_IRQ, USB_IRQ_PRI, usb_dc_wch_isr, 0, 0);
 	irq_enable(USB_IRQ);

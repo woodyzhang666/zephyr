@@ -1,5 +1,6 @@
 
 #include <zephyr/toolchain.h>
+#include <soc.h>
 
 /* Imports */
 GTEXT(__irq_wrapper)
@@ -15,8 +16,16 @@ GTEXT(vector_base)
 __start:
     li t0, 0x1888	/* stay machine level after mret */
     csrs mstatus, t0
+
+	/* pipeline, branch prediction */
+    li t0, 0x1f
+    csrw CORECFGR, t0
+
+    li t0, HWSTKEN | INESTEN | (PMTCFG_2_LEVEL << POS_PMTCFG)
+    csrw INTSYSCR, t0
+
     la t0, vector_base
-    ori t0, t0, 1
+    ori t0, t0, 3
     csrw mtvec, t0
 	la t0, __initialize
 	csrw mepc, t0
@@ -26,8 +35,8 @@ __start:
 vector_base:
 	.word	0
 	.word	0
-		j	nmi_handler
-        j   hardfault_handler			/* Hard Fault Handler */
+	.word	nmi_handler
+    .word   hardfault_handler			/* Hard Fault Handler */
     .word   0
     .word   0
     .word   0
@@ -39,9 +48,9 @@ vector_base:
 
     /* External Interrupts */
 	.rept (10)
-		j	__irq_wrapper		/* 20 identical entries, all pointing to the interrupt handler */
+	.word	__irq_wrapper		/* 20 identical entries, all pointing to the interrupt handler */
 	.endr
-	    j   __usb_irq_wrapper
+	.word   __usb_irq_wrapper
 	.rept (13)
-		j	__irq_wrapper		/* 20 identical entries, all pointing to the interrupt handler */
+	.word	__irq_wrapper		/* 20 identical entries, all pointing to the interrupt handler */
 	.endr

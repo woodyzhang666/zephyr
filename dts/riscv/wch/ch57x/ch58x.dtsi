@@ -23,7 +23,7 @@
 		systick: timer@e000f000 {
 			compatible = "wch,ch58x-systick";
 			reg = <0xe000f000 0x20>;
-			interrupts = <12 0>;
+			interrupts = <12 0x80>;
 		};
 
 		syscon: syscon@40001000 {
@@ -43,7 +43,7 @@
 				compatible = "wch,wch-gpio";
 				gpio-controller;
 				#gpio-cells = <2>;
-				interrupts = <17 0>;
+				interrupts = <17 0x80>;
 				//pin-mask = <0x00ff30>;
 				label = "GPIOA";
 			};
@@ -52,7 +52,7 @@
 				compatible = "wch,wch-gpio";
 				gpio-controller;
 				#gpio-cells = <2>;
-				interrupts = <18 0>;
+				interrupts = <18 0x80>;
 				//pin-mask = <0xc0fcd1>;
 				label = "GPIOB";
 			};
@@ -61,7 +61,7 @@
 		spi1: spi@40004400 {
 			compatible = "wch,wch-spi";
 			reg = <0x40004400 0x400>;
-			interrupts = <31 0>;	/* share with pwm */
+			interrupts = <31 0x80>;	/* share with pwm */
 			clocks = <&rcc 0x0200>;
 			label = "SPI_1";
 			status = "disabled";
@@ -70,7 +70,7 @@
 		i2c0: i2c@40004800 {
 			compatible = "wch,wch-i2c";
 			reg = <0x40004800 0x400>;
-			interrupts = <30 0>;
+			interrupts = <30 0x80>;
 			clocks = <&rcc 0x0800>;
 			label = "I2C_0";
 			status = "disabled";
@@ -83,7 +83,7 @@
 		usbhd1: usbhd@40008400 {
 			compatible = "wch,wch-usbhd";
 			reg = <0x40008400 0x400>;
-			interrupts = <23 0>;
+			interrupts = <23 0x00>;
 			num-bidir-endpoints = <8>;
 			clocks = <&rcc 0x2000>;
 			label = "USBHD_1";
