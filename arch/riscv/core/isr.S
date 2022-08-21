@@ -140,7 +140,13 @@ GTEXT(__irq_wrapper)
 /*
  * Handler called upon each exception/interrupt/fault
  */
-SECTION_FUNC(exception.entry, __irq_wrapper)
+SECTION_FUNC(ramfunc, __irq_wrapper)
+	/* pull down gpio */
+	li t0, 0x400010a8
+	lr t1, 0(t0)
+	li t2, 0xFFFFFFDF
+	and t1, t1, t2
+	sw t1, 0(t0)
 
 #ifdef CONFIG_USERSPACE
 	/*
@@ -643,6 +649,12 @@ no_fp:	/* make sure this is reflected in the restored mstatus */
 	/* remove esf from the stack */
 	addi sp, sp, __z_arch_esf_t_SIZEOF
 #endif
+
+	/* pull up gpio */
+	li t0, 0x400010a8
+	lr t1, 0(t0)
+	ori t1, t1, 0x20
+	sw t1, 0(t0)
 
 	/* Call SOC_ERET to exit ISR */
 	SOC_ERET

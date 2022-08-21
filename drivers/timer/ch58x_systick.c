@@ -9,24 +9,13 @@
 
 #define CYC_PER_TICK ((uint32_t)((uint64_t)sys_clock_hw_cycles_per_sec()	\
 			      / (uint64_t)CONFIG_SYS_CLOCK_TICKS_PER_SEC))
-#define MAX_CYCLES 0xFFFFFFFFFFFFULL
-#define MAX_TICKS (uint32_t)((MAX_CYCLES - CYC_PER_TICK) / CYC_PER_TICK)
+#define MAX_SKIP_CYCLES 0xFFFFFFFFULL
+#define MAX_SKIP_TICKS (uint32_t)((MAX_SKIP_CYCLES - CYC_PER_TICK) / CYC_PER_TICK)
 
-#define TIMER_STOPPED 0xFFFFFFFFFFFFFFFFULL
-
-#define MIN_DELAY MAX(1024, (CYC_PER_TICK/16))
-
-#define INITIAL_CYCLES	0xFFFFFFFFULL
 
 static struct k_spinlock lock;
 
-static uint64_t last_load;
-
-static uint64_t cycle_count;
-
 static uint64_t announced_cycles;
-
-static volatile uint64_t overflow_cyc;
 
 union stk_ctrl {
 	struct {
@@ -98,48 +87,20 @@ struct systick_config {
 	int mode;
 };
 
-static uint64_t elapsed(void)
-{
-	uint64_t val1 = systick->cnt.val;	/* A */
-	union stk_status status = systick->status;	/* B */
-	uint64_t val2 = systick->cnt.val;	/* C */
-
-	/* SysTick behavior: The counter wraps at zero automatically,
-	 * setting the COUNTFLAG field of the CTRL register when it
-	 * does.  Reading the control register automatically clears
-	 * that field.
-	 *
-	 * If the count wrapped...
-	 * 1) Before A then COUNTFLAG will be set and val1 >= val2
-	 * 2) Between A and B then COUNTFLAG will be set and val1 < val2
-	 * 3) Between B and C then COUNTFLAG will be clear and val1 < val2
-	 * 4) After C we'll see it next time
-	 *
-	 * So the count in val2 is post-wrap and last_load needs to be
-	 * added if and only if COUNTFLAG is set or val1 < val2.
-	 */
-	if ((status.cntif) || (val1 > val2)) {
-		overflow_cyc += last_load;
-
-		/* We know there was a wrap, but we might not have
-		 * seen it in flag, so clear it. */
-		systick->status.cntif = 0;
-	}
-
-	return val2 + overflow_cyc;
-}
-
-static void systick_isr(struct device *dev)
+__ramfunc static void systick_isr(struct device *dev)
 {
 	ARG_UNUSED(dev);
 	uint32_t dticks;
 
-	elapsed();
-	cycle_count += overflow_cyc;
-	overflow_cyc = 0;
+	k_spinlock_key_t key = k_spin_lock(&lock);
+
+	uint64_t cyc = systick->cnt.val;
+	systick->status.cntif = 0;
+
+	k_spin_unlock(&lock, key);
 
 	if (IS_ENABLED(CONFIG_TICKLESS_KERNEL)) {
-		dticks = (cycle_count - announced_cycles) / CYC_PER_TICK;
+		dticks = (cyc - announced_cycles) / CYC_PER_TICK;
 		announced_cycles += dticks * CYC_PER_TICK;
 		sys_clock_announce(dticks);
 	} else {
@@ -147,21 +108,26 @@ static void systick_isr(struct device *dev)
 	}
 }
 
-void sys_clock_set_timeout(int32_t ticks, bool idle)
+/* timeout in ticks after last announce */
+__ramfunc void sys_clock_set_timeout(int32_t ticks, bool idle)
 {
 	if (IS_ENABLED(CONFIG_TICKLESS_KERNEL) && idle && ticks == K_TICKS_FOREVER) {
 		systick->ctrl.ste = 0;
-		last_load = TIMER_STOPPED;
 		return;
 	}
 
 #if defined(CONFIG_TICKLESS_KERNEL)
-	ticks = (ticks == K_TICKS_FOREVER) ? MAX_TICKS : ticks;
+	ticks = (ticks == K_TICKS_FOREVER) ? MAX_SKIP_TICKS : ticks;
+	uint64_t target_cycle = ticks * CYC_PER_TICK + announced_cycles;
 
 	k_spinlock_key_t key = k_spin_lock(&lock);
 
-	last_load = (uint64_t)ticks * CYC_PER_TICK - 1;
-	systick->cmp.val = last_load;
+	uint64_t cyc = systick->cnt.val;
+	if (cyc + CYC_PER_TICK / 2 > target_cycle) {
+		systick->cmp.val = cyc + CYC_PER_TICK;
+	} else {
+		systick->cmp.val = target_cycle;
+	}
 
 	k_spin_unlock(&lock, key);
 #endif
@@ -175,7 +141,7 @@ uint32_t sys_clock_elapsed(void)
 	}
 
 	k_spinlock_key_t key = k_spin_lock(&lock);
-	uint64_t cyc = elapsed() + cycle_count - announced_cycles;
+	uint64_t cyc = systick->cnt.val - announced_cycles;
 
 	k_spin_unlock(&lock, key);
 	return cyc / CYC_PER_TICK;
@@ -185,7 +151,7 @@ uint32_t sys_clock_elapsed(void)
 uint64_t sys_clock_cycle_get_64(void)
 {
 	k_spinlock_key_t key = k_spin_lock(&lock);
-	uint64_t ret = elapsed() + cycle_count;
+	uint64_t ret = systick->cnt.val;
 
 	k_spin_unlock(&lock, key);
 	return ret;
@@ -199,16 +165,13 @@ uint32_t sys_clock_cycle_get_32(void)
 
 void sys_clock_idle_exit(void)
 {
-	if (last_load == TIMER_STOPPED) {
-		systick->ctrl.ste = 1;
-	}
+	systick->ctrl.ste = 1;
 }
 
 void sys_clock_disable(void)
 {
 	systick->ctrl.ste = 0;
 }
-
 
 static int systick_init(const struct device *dev)
 {
@@ -218,13 +181,14 @@ static int systick_init(const struct device *dev)
 		systick_isr, DEVICE_DT_INST_GET(0),	0);
 	irq_enable(DT_INST_IRQN(0));
 
-	last_load = MAX_CYCLES;
-	systick->cmp.val = last_load - 1;
+	systick->cmp.val = ULLONG_MAX;
 	systick->ctrl.mode = COUNTING_UP;
 	systick->ctrl.stclk = HCLK;
-	systick->ctrl.stre = 1;
+	systick->ctrl.stre = 0;		/* never reach cmp value */
 	systick->ctrl.stie = 1;
+	systick->status.cntif = 0;
 	systick->ctrl.ste = 1;
+	systick->ctrl.init = 1;
 
 	return 0;
 }

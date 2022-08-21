@@ -18,5 +18,6 @@ config CH58X_SYSTICK
 	default $(dt_compat_enabled,$(DT_COMPAT_WCH_CH58X_SYSTICK))
 	select TICKLESS_CAPABLE
 	select SYSTEM_TIMER_HAS_DISABLE_SUPPORT
+	select TIMER_HAS_64BIT_CYCLE_COUNTER
 	help
 	  This option enables count-down systick timer on ch58x series.

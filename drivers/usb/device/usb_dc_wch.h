@@ -60,7 +60,7 @@ union wch_usb_int_en {
 #define RB_UIE_SUSPEND		0x04
 #define RB_UIE_HST_SOF		0x08
 #define RB_UIE_FIFO_OV		0x10	/* in host mode, internal sof timer */
-#define RB_UIE_DEV_NAK		0x40	/* host nak us ? */
+#define RB_UIE_DEV_NAK		0x40	/* don't generate int on NAKed IN. and OUT? */
 #define RB_UIE_DEV_SOF		0x80	/* on receiving sof */
 
 union wch_usb_addr {

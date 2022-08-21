@@ -177,7 +177,7 @@
 		usbhd0: usbhd@40008000 {
 			compatible = "wch,wch-usbhd";
 			reg = <0x40008000 0x400>;
-			interrupts = <22 0x00>;
+			interrupts = <22 0x80>;
 			//num-bidir-endpoints = <5>;
 			clocks = <&rcc 0x1000>;
 			label = "USBHD_0";

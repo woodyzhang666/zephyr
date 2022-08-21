@@ -57,7 +57,7 @@ GTEXT(z_thread_mark_switched_in)
 GTEXT(z_riscv_configure_stack_guard)
 
 /* void z_riscv_switch(k_thread_t *switch_to, k_thread_t *switch_from) */
-SECTION_FUNC(TEXT, z_riscv_switch)
+SECTION_FUNC(ramfunc, z_riscv_switch)
 
 	/* Save the old thread's callee-saved registers */
 	DO_CALLEE_SAVED(sr, a1)

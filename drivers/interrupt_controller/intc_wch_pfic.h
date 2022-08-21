@@ -34,7 +34,7 @@ struct pfic {
 	volatile uint32_t _rsvd8[32-1];
 	volatile uint32_t iactr[VECTOR_ARRAY_LEN];		/* 0x300, Interrupt Activate Reg */
 	volatile uint32_t _rsvd9[64-VECTOR_ARRAY_LEN];
-	volatile uint32_t iprior[PRIORITY_REG_COUNT];	/* 0x400, Interrupt Priority Reg, 8bit for one interrupt */
+	volatile uint8_t  iprior[PFIC_VECTOR_NUM];	/* 0x400, Interrupt Priority Reg, 8bit for one interrupt */
 	volatile uint32_t _rsvd10[580-PRIORITY_REG_COUNT];
 	volatile uint32_t sctlr;					/* 0xd10, System Control Reg */
 	volatile uint32_t vtctlr;				/* 0xd14, Vector Table Control Reg */

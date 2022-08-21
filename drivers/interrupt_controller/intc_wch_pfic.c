@@ -46,8 +46,7 @@ int arch_irq_is_enabled(unsigned int irq)
 
 void wch_pfic_irq_priority_set(uint32_t irq, uint32_t prio)
 {
-	prio &= 0xff;
+	uint8_t _prio = prio & 0xff;
 
-	uint32_t tmp = pfic->iprior[irq / 4];
-	pfic->iprior[irq >> 2] = (tmp & ~(0xff << (irq & 0x3 * 8))) | (prio << (irq & 0x3 * 8));
+	pfic->iprior[irq] = _prio;
 }

@@ -12,22 +12,22 @@ GTEXT(sw_handler)
 GTEXT(__usb_irq_wrapper)
 GDATA(_sw_isr_table)
 
-SECTION_FUNC(exception.other, __soc_is_irq)
+SECTION_FUNC(ramfunc, __soc_is_irq)
 	csrr a0, mcause
 	srli a0, a0, 31
 	ret
 
-SECTION_FUNC(exception.other, __soc_handle_irq)
+SECTION_FUNC(ramfunc, __soc_handle_irq)
 	ret
 
 //TODO
-SECTION_FUNC(exception.other, nmi_handler)
+SECTION_FUNC(ramfunc, nmi_handler)
 1:  j 1b
 
-SECTION_FUNC(exception.other, hardfault_handler)
+SECTION_FUNC(ramfunc, hardfault_handler)
 1:  j 1b
 
-SECTION_FUNC(exception.other, sw_handler)
+SECTION_FUNC(ramfunc, sw_handler)
 1:  j 1b
 
 SECTION_FUNC(ramfunc, __usb_irq_wrapper)

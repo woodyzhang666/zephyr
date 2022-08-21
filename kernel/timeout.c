@@ -36,21 +36,21 @@ static inline int z_vrfy_sys_clock_hw_cycles_per_sec_runtime_get(void)
 #endif /* CONFIG_USERSPACE */
 #endif /* CONFIG_TIMER_READS_ITS_FREQUENCY_AT_RUNTIME */
 
-static struct _timeout *first(void)
+__ramfunc static struct _timeout *first(void)
 {
 	sys_dnode_t *t = sys_dlist_peek_head(&timeout_list);
 
 	return t == NULL ? NULL : CONTAINER_OF(t, struct _timeout, node);
 }
 
-static struct _timeout *next(struct _timeout *t)
+__ramfunc static struct _timeout *next(struct _timeout *t)
 {
 	sys_dnode_t *n = sys_dlist_peek_next(&timeout_list, &t->node);
 
 	return n == NULL ? NULL : CONTAINER_OF(n, struct _timeout, node);
 }
 
-static void remove_timeout(struct _timeout *t)
+__ramfunc static void remove_timeout(struct _timeout *t)
 {
 	if (next(t) != NULL) {
 		next(t)->dticks += t->dticks;
@@ -59,12 +59,12 @@ static void remove_timeout(struct _timeout *t)
 	sys_dlist_remove(&t->node);
 }
 
-static int32_t elapsed(void)
+__ramfunc static int32_t elapsed(void)
 {
 	return announce_remaining == 0 ? sys_clock_elapsed() : 0U;
 }
 
-static int32_t next_timeout(void)
+__ramfunc static int32_t next_timeout(void)
 {
 	struct _timeout *to = first();
 	int32_t ticks_elapsed = elapsed();
@@ -85,7 +85,7 @@ static int32_t next_timeout(void)
 	return ret;
 }
 
-void z_add_timeout(struct _timeout *to, _timeout_func_t fn,
+__ramfunc void z_add_timeout(struct _timeout *to, _timeout_func_t fn,
 		   k_timeout_t timeout)
 {
 	if (K_TIMEOUT_EQ(timeout, K_FOREVER)) {
@@ -236,7 +236,7 @@ void z_set_timeout_expiry(int32_t ticks, bool is_idle)
 	}
 }
 
-void sys_clock_announce(int32_t ticks)
+__ramfunc void sys_clock_announce(int32_t ticks)
 {
 #ifdef CONFIG_TIMESLICING
 	z_time_slice(ticks);
@@ -284,7 +284,7 @@ void sys_clock_announce(int32_t ticks)
 	k_spin_unlock(&timeout_lock, key);
 }
 
-int64_t sys_clock_tick_get(void)
+__ramfunc int64_t sys_clock_tick_get(void)
 {
 	uint64_t t = 0U;
 
@@ -294,7 +294,7 @@ int64_t sys_clock_tick_get(void)
 	return t;
 }
 
-uint32_t sys_clock_tick_get_32(void)
+__ramfunc uint32_t sys_clock_tick_get_32(void)
 {
 #ifdef CONFIG_TICKLESS_KERNEL
 	return (uint32_t)sys_clock_tick_get();
@@ -316,7 +316,7 @@ static inline int64_t z_vrfy_k_uptime_ticks(void)
 #include <syscalls/k_uptime_ticks_mrsh.c>
 #endif
 
-void z_impl_k_busy_wait(uint32_t usec_to_wait)
+__ramfunc void z_impl_k_busy_wait(uint32_t usec_to_wait)
 {
 	SYS_PORT_TRACING_FUNC_ENTER(k_thread, busy_wait, usec_to_wait);
 	if (usec_to_wait == 0U) {

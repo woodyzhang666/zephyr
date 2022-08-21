@@ -152,7 +152,8 @@ __ramfunc static void usb_dc_wch_isr(const void *arg)
 
 		if (flag & MASK_UIF_FLAGS) {
 			// pull up gpio a5 */
-			*(volatile uint32_t *)0x400010a8 &= ~(1UL << 5);
+			//*(volatile uint32_t *)0x400010a8 &= ~(1UL << 5);
+			;
 		} else {
 			break;
 		}
@@ -197,7 +198,7 @@ __ramfunc static void usb_dc_wch_isr(const void *arg)
 						break;
 					case WCH_USB_TOKEN_IN << POS_UIS_TOKEN:
 						LOG_DBG("epnum 0x%02x tx", ep_idx);
-						k_sem_give(&(usb_dc_wch_state.in_ep_state->write_sem));		/* allow next ep write */
+						k_sem_give(&(usb_dc_wch_state.in_ep_state[ep_idx].write_sem));		/* allow next ep write */
 
 						if (usb_dc_wch_state.update_address) {
 							uint8_t address = *(volatile uint8_t *)(USB_REG_BASE + R8_USB_DEV_AD);
@@ -283,7 +284,7 @@ __ramfunc static void usb_dc_wch_isr(const void *arg)
 out:
 		*(volatile uint8_t *)(USB_REG_BASE + R8_USB_INT_FG) = MASK_UIF_FLAGS << POS_UIF_FLAGS;
 		/* pull up gpio a5, for debug */
-		*(volatile uint32_t *)0x400010a8 |= (1UL << 5);
+		//*(volatile uint32_t *)0x400010a8 |= (1UL << 5);
 	}
 
 }
@@ -777,9 +778,9 @@ static int usb_dc_wch_init(const struct device *dev)
 	*(volatile uint8_t *)(USB_REG_BASE + R8_UDEV_CTRL) =  RB_UD_PD_DIS;
 
 #ifdef CONFIG_USB_DEVICE_SOF
-	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_INT_EN) = RB_UIE_BUS_RST | RB_UIE_TRANSFER | RB_UIE_FIFO_OV | RB_UIE_DEV_NAK | RB_UIE_DEV_SOF;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_INT_EN) = RB_UIE_BUS_RST | RB_UIE_TRANSFER | RB_UIE_FIFO_OV | RB_UIE_DEV_SOF;
 #else
-	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_INT_EN) = RB_UIE_BUS_RST | RB_UIE_TRANSFER | RB_UIE_FIFO_OV | RB_UIE_DEV_NAK;
+	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_INT_EN) = RB_UIE_BUS_RST | RB_UIE_TRANSFER | RB_UIE_FIFO_OV;
 #endif
 
 	/* use the semaphore to control refilling of IN buf */
@@ -790,10 +791,10 @@ static int usb_dc_wch_init(const struct device *dev)
 	/* clear stale interrupts */
 	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_INT_FG) = 0xFF;
 
-	extern void __usb_irq_wrapper(void);
+	extern void __irq_wrapper(void);
 	/* vector table free interrupt */
 	*(volatile uint8_t *)(0xE000E050) = 22;
-	*(volatile uint32_t *)(0xE000E060) = (uint32_t)__usb_irq_wrapper + 1;
+	*(volatile uint32_t *)(0xE000E060) = (uint32_t)__irq_wrapper + 1;
 
 	IRQ_CONNECT(USB_IRQ, USB_IRQ_PRI, usb_dc_wch_isr, 0, 0);
 	irq_enable(USB_IRQ);

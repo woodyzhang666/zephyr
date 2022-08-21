@@ -16,6 +16,10 @@ config MAIN_STACK_SIZE
 config SYSCON_INIT_PRIORITY
 	default 10
 
+# No dynamic interrupts actually. Let cmake generate isr table in RAM.
+config DYNAMIC_INTERRUPTS
+	default y
+
 if SOC_CH573F
 
 config SOC

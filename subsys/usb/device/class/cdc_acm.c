@@ -313,7 +313,7 @@ static void cdc_acm_int_in(uint8_t ep, enum usb_dc_ep_cb_status_code ep_status)
 	dev_data = CONTAINER_OF(common, struct cdc_acm_dev_data_t, common);
 
 	dev_data->notification_sent = 1U;
-	LOG_DBG("CDC_IntIN EP[%x]\r", ep);
+	LOG_INF("CDC_IntIN EP[%x]\r", ep);
 }
 
 static void cdc_acm_reset_port(struct cdc_acm_dev_data_t *dev_data)
@@ -741,6 +741,11 @@ static int cdc_acm_send_notification(const struct device *dev,
 	notification.data = sys_cpu_to_le16(serial_state);
 
 	dev_data->notification_sent = 0U;
+#if 0
+	// pull up gpio a5 */
+	*(volatile uint32_t *)0x400010a8 &= ~(1UL << 5);
+#endif
+	LOG_INF("notify");
 
 	usb_write(cfg->endpoint[ACM_INT_EP_IDX].ep_addr,
 		  (const uint8_t *)&notification, sizeof(notification), NULL);
@@ -750,7 +755,11 @@ static int cdc_acm_send_notification(const struct device *dev,
 		k_busy_wait(1);
 
 		if (++cnt > CDC_CONTROL_SERIAL_STATE_TIMEOUT_US) {
-			LOG_DBG("CDC ACM notification timeout!");
+#if 0
+		/* pull up gpio a5, for debug */
+			*(volatile uint32_t *)0x400010a8 |= (1UL << 5);
+#endif
+			LOG_INF("CDC ACM notification timeout!");
 			return -EIO;
 		}
 	}

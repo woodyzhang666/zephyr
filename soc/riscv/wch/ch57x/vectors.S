@@ -21,7 +21,7 @@ __start:
     li t0, 0x1f
     csrw CORECFGR, t0
 
-    li t0, HWSTKEN | INESTEN | (PMTCFG_2_LEVEL << POS_PMTCFG)
+    li t0,  INESTEN | (PMTCFG_2_LEVEL << POS_PMTCFG)
     csrw INTSYSCR, t0
 
     la t0, vector_base
@@ -50,7 +50,7 @@ vector_base:
 	.rept (10)
 	.word	__irq_wrapper		/* 20 identical entries, all pointing to the interrupt handler */
 	.endr
-	.word   __usb_irq_wrapper
+	.word   __irq_wrapper
 	.rept (13)
 	.word	__irq_wrapper		/* 20 identical entries, all pointing to the interrupt handler */
 	.endr
