@@ -11,6 +11,7 @@ GTEXT(systick_handler)
 GTEXT(sw_handler)
 GTEXT(__usb_irq_wrapper)
 GDATA(_sw_isr_table)
+GDATA(__irq_count)
 
 SECTION_FUNC(ramfunc, __soc_is_irq)
 	csrr a0, mcause
@@ -18,6 +19,12 @@ SECTION_FUNC(ramfunc, __soc_is_irq)
 	ret
 
 SECTION_FUNC(ramfunc, __soc_handle_irq)
+	la t0, __irq_count
+	slli a1, a0, 2
+	add t0, t0, a1
+	lw t1, 0(t0)
+	addi t1, t1, 1
+	sw t1, 0(t0)
 	ret
 
 //TODO

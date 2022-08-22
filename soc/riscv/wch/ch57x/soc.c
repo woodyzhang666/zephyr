@@ -16,3 +16,4 @@ void soc_interrupt_init(void)
 
 #endif
 
+uint32_t __irq_count[36];

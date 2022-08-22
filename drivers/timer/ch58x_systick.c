@@ -101,14 +101,14 @@ __ramfunc static void systick_isr(struct device *dev)
 
 	if (IS_ENABLED(CONFIG_TICKLESS_KERNEL)) {
 		dticks = (cyc - announced_cycles) / CYC_PER_TICK;
-		announced_cycles += dticks * CYC_PER_TICK;
+		announced_cycles += (uint64_t)dticks * CYC_PER_TICK;
 		sys_clock_announce(dticks);
 	} else {
 		sys_clock_announce(1);
 	}
 }
 
-/* timeout in ticks after last announce */
+/* timeout in ticks from now on */
 __ramfunc void sys_clock_set_timeout(int32_t ticks, bool idle)
 {
 	if (IS_ENABLED(CONFIG_TICKLESS_KERNEL) && idle && ticks == K_TICKS_FOREVER) {
@@ -118,16 +118,11 @@ __ramfunc void sys_clock_set_timeout(int32_t ticks, bool idle)
 
 #if defined(CONFIG_TICKLESS_KERNEL)
 	ticks = (ticks == K_TICKS_FOREVER) ? MAX_SKIP_TICKS : ticks;
-	uint64_t target_cycle = ticks * CYC_PER_TICK + announced_cycles;
 
 	k_spinlock_key_t key = k_spin_lock(&lock);
 
 	uint64_t cyc = systick->cnt.val;
-	if (cyc + CYC_PER_TICK / 2 > target_cycle) {
-		systick->cmp.val = cyc + CYC_PER_TICK;
-	} else {
-		systick->cmp.val = target_cycle;
-	}
+	systick->cmp.val = cyc + (uint64_t)ticks * CYC_PER_TICK;
 
 	k_spin_unlock(&lock, key);
 #endif
