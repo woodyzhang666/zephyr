@@ -5,6 +5,8 @@
 #define SOC_MCAUSE_USER_ECALL_EXP 8 /* User ECALL instruction */
 #define SOC_MCAUSE_ECALL_EXP 11 /* Machine ECALL instruction */
 
+#define WCH_SW_IRQ_NUM		14
+
 #define SOC_MCAUSE_EXP_MASK 0x7FFFFFFF
 
 #define SOC_ERET mret
@@ -25,5 +27,10 @@
 #define POS_PMTSTA			16
 #define INTSYSCR		0x804
 #define CORECFGR		0xBC0
+
+#ifndef __ASSEMBLER__
+extern void soc_interrupt_init(void);
+
+#endif
 
 #endif /* __SOC_H__ */

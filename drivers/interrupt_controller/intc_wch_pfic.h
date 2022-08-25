@@ -30,8 +30,8 @@ struct pfic {
 	volatile uint32_t _rsvd6[32-VECTOR_ARRAY_LEN];
 	volatile uint32_t ipsr[VECTOR_ARRAY_LEN];		/* 0x200, Interrupt Pending Set Reg */
 	volatile uint32_t _rsvd7[32-VECTOR_ARRAY_LEN];
-	volatile uint32_t iprr;		/* 0x280, Interrupt Pending Remove Reg */
-	volatile uint32_t _rsvd8[32-1];
+	volatile uint32_t iprr[VECTOR_ARRAY_LEN];		/* 0x280, Interrupt Pending Remove Reg */
+	volatile uint32_t _rsvd8[32-VECTOR_ARRAY_LEN];
 	volatile uint32_t iactr[VECTOR_ARRAY_LEN];		/* 0x300, Interrupt Activate Reg */
 	volatile uint32_t _rsvd9[64-VECTOR_ARRAY_LEN];
 	volatile uint8_t  iprior[PFIC_VECTOR_NUM];	/* 0x400, Interrupt Priority Reg, 8bit for one interrupt */

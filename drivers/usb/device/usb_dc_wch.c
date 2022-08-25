@@ -163,19 +163,20 @@ __ramfunc static void usb_dc_wch_isr(const void *arg)
 		if (flag & RB_UIF_TRANSFER) {
 			LOG_DBG("XMIT event");
 
-			if (flag & RB_U_IS_NAK)
-				goto out;
-
 			if ((stat & MASK_UIS_TOKEN) != (WCH_USB_TOKEN_NONE << POS_UIS_TOKEN)) {
+				if (flag & RB_U_IS_NAK)
+					goto out;
+
 				uint8_t ep_idx = (stat & MASK_UIS_ENDP) >> POS_UIS_ENDP;
 
-				/* close tx/rx. let this tranfer handler decide to open next transfer */
-				uint8_t ep_ctrl = *(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx));
-				ep_ctrl = (ep_ctrl & (~(MASK_UEP_T_RES | MASK_UEP_R_RES))) | (USB_RESP_NAK << POS_UEP_T_RES) | (USB_RESP_NAK << POS_UEP_R_RES);
-				*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx)) = ep_ctrl;
-
 				switch (stat & MASK_UIS_TOKEN) {
+					uint8_t ep_ctrl;
 					case WCH_USB_TOKEN_OUT << POS_UIS_TOKEN:
+						/* close tx/rx. let this tranfer handler decide to open next transfer */
+						ep_ctrl = *(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx));
+						ep_ctrl = (ep_ctrl & (~MASK_UEP_R_RES)) | (USB_RESP_NAK << POS_UEP_R_RES);
+						*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx)) = ep_ctrl;
+
 						rx_len = *(volatile uint8_t *)(USB_REG_BASE + R8_USB_RX_LEN);
 
 						LOG_DBG("epnum 0x%02x, rx_count %u", ep_idx, rx_len);
@@ -197,6 +198,11 @@ __ramfunc static void usb_dc_wch_isr(const void *arg)
 						}
 						break;
 					case WCH_USB_TOKEN_IN << POS_UIS_TOKEN:
+						/* close tx/rx. let this tranfer handler decide to open next transfer */
+						ep_ctrl = *(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx));
+						ep_ctrl = (ep_ctrl & (~MASK_UEP_T_RES)) | (USB_RESP_NAK << POS_UEP_T_RES);
+						*(volatile uint8_t *)(USB_REG_BASE + R8_UEPx_CTRL(ep_idx)) = ep_ctrl;
+
 						LOG_DBG("epnum 0x%02x tx", ep_idx);
 						k_sem_give(&(usb_dc_wch_state.in_ep_state[ep_idx].write_sem));		/* allow next ep write */
 

@@ -20,6 +20,9 @@ config SYSCON_INIT_PRIORITY
 config DYNAMIC_INTERRUPTS
 	default y
 
+config RISCV_SOC_INTERRUPT_INIT
+	default y
+
 if SOC_CH573F
 
 config SOC
