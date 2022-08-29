@@ -12,22 +12,18 @@
 #include <zephyr/arch/riscv/csr.h>
 #include <zephyr/arch/riscv/syscall.h>
 
+#define WCH_DEBUG_GPIO
+
 /* Exports */
-GTEXT(__soc_is_irq)
-GTEXT(__soc_handle_irq)
 GTEXT(nmi_handler)
 GTEXT(hardfault_handler)
-GTEXT(systick_handler)
 GTEXT(__sw_handler)
 GTEXT(__wch_irq_wrapper)
+GTEXT(z_riscv_thread_start)
+
+/* Imports */
 GDATA(_sw_isr_table)
 GDATA(__irq_count)
-
-.balign 0x4
-__from_thread:
-	.word	 0
-__to_thread:
-	.word	0
 
 #define DO_CALLER_SAVED_T0T1(op) \
 	op t0, __z_arch_esf_t_t0_OFFSET(sp)		;\
@@ -69,21 +65,6 @@ __to_thread:
 #define GET_CURRENT_CPU(dst, tmp) \
 	la dst, _kernel + ___kernel_t_cpus_OFFSET
 
-SECTION_FUNC(ramfunc, __soc_is_irq)
-	csrr a0, mcause
-	srli a0, a0, 31
-	ret
-
-SECTION_FUNC(ramfunc, __soc_handle_irq)
-	la t0, __irq_count
-	slli a1, a0, 2
-	add t0, t0, a1
-	lw t1, 0(t0)
-	addi t1, t1, 1
-	sw t1, 0(t0)
-	ret
-
-//TODO
 SECTION_FUNC(ramfunc, nmi_handler)
 1:  j 1b
 
@@ -91,6 +72,9 @@ SECTION_FUNC(ramfunc, hardfault_handler)
 1:  j 1b
 
 SECTION_FUNC(ramfunc, __sw_handler_switch)
+	/* Get pointer to current thread on this CPU */
+	lw a1, ___cpu_t_current_OFFSET(s0)
+
 	/*
 	 * Get next thread to schedule with z_get_next_switch_handle().
 	 * We pass it a NULL as we didn't save the whole thread context yet.
@@ -112,6 +96,7 @@ SECTION_FUNC(ramfunc, __sw_handler_switch)
 	call z_riscv_switch
 
 
+z_riscv_thread_start:
 no_switch:
 
 	/* Restore MEPC register */
@@ -120,8 +105,6 @@ no_switch:
 
 	/* Restore MSTATUS register */
 	lw t2, __z_arch_esf_t_mstatus_OFFSET(sp)
-	li t0, 0xFFFFFFF7
-	and t2, t2, t0
 	csrrw t0, mstatus, t2
 
 	/* Restore s0 (it is no longer ours) */
@@ -136,6 +119,7 @@ no_switch:
 	mret	/* no hw stack to pop */
 
 SECTION_FUNC(ramfunc, __sw_handler)
+
 	/* Save caller-saved registers on current thread stack. */
 	addi sp, sp, -__z_arch_esf_t_SIZEOF
 	DO_CALLER_SAVED_T0T1(sw)		;
@@ -153,20 +137,15 @@ SECTION_FUNC(ramfunc, __sw_handler)
 	csrr t2, mstatus
 	sw t2, __z_arch_esf_t_mstatus_OFFSET(sp)
 
-	/* Get pointer to current thread on this CPU */
-	lw a1, ___cpu_t_current_OFFSET(s0)
-
-	DO_CALLEE_SAVED(sw, a1)
-
-
-    li t0, 0x1800                   /* set MPIE to 0, make it safe when switch tasks. */
-    csrw mstatus, t0
-
     /* Load mret with the address of the next instruction in the task to run next. */
     la t0, __sw_handler_switch
     csrw mepc, t0
 
-no_sw_schedule:
+	csrrc a2, mstatus, 0x8
+	nop
+	nop
+	nop
+
 	/* hw stack is poped out */
 	mret
 
@@ -178,12 +157,27 @@ no_sw_schedule:
  * restore them on mret
  */
 SECTION_FUNC(ramfunc, __wch_irq_wrapper)
+#ifdef WCH_DEBUG_GPIO
+	csrrc a1, mstatus, 0x8	/* irq lock */
+	nop
+	nop
+	nop
+
 	/* pull down gpio */
 	li t0, 0x400010a8
 	lw t1, 0(t0)
+	li t2, 0x20
+	and t2, t2, t1
+	beqz t2, pull_down_gpio6
 	li t2, 0xFFFFFFDF
+	j 1f
+pull_down_gpio6:
+	li t2, 0xFFFFFFBF
+1:
 	and t1, t1, t2
 	sw t1, 0(t0)
+	csrw mstatus, a1		/* irq unlock */
+#endif
 
 	/* Save caller-saved registers on current thread stack. */
 	addi sp, sp, -__z_arch_esf_t_SIZEOF
@@ -221,15 +215,10 @@ on_irq_stack:
 	call sys_trace_isr_enter
 #endif
 
-	/* Get IRQ causing interrupt */
+	/* Get IRQ number */
 	csrr a0, mcause
 	li t0, SOC_MCAUSE_EXP_MASK
 	and a0, a0, t0
-
-	/*
-	 * Clear pending IRQ generating the interrupt at SOC level
-	 * Pass IRQ number to __soc_handle_irq via register a0
-	 */
 
 #if 1
 	/* irq accounting */
@@ -251,7 +240,6 @@ on_irq_stack:
 
 	/* Load argument in a0 register */
 	lw a0, 0(t0)
-
 	/* Load ISR function address in register t1 */
 	lw t1, 4(t0)
 
@@ -287,46 +275,37 @@ switch_to_thread_stack:
 
 reschedule:
 
-	/* Get pointer to current thread on this CPU */
-	lw a1, ___cpu_t_current_OFFSET(s0)
-
-	/*
-	 * Get next thread to schedule with z_get_next_switch_handle().
-	 * We pass it a NULL as we didn't save the whole thread context yet.
-	 * If no scheduling is necessary then NULL will be returned.
-	 */
-	addi sp, sp, -16
-	sw a1, 0(sp)
-	mv a0, zero
-	call z_get_next_switch_handle
-	lw a1, 0(sp)
-	addi sp, sp, 16
-	beqz a0, no_reschedule
-
-	/*
-	 * Perform context switch:
-	 * a0 = new thread
-	 * a1 = old thread
-	 */
-	call z_riscv_switch
 	/* pend sw interrupt which has lowest prio */
-	//call pend_sw_int
-
-exit_irq:
+	call pend_sw_int
 
 no_reschedule:
 
-	/* Restore s0 (it is no longer ours) */
 	lw s0, __z_arch_esf_t_s0_OFFSET(sp)
 
 	/* remove esf from the stack */
 	addi sp, sp, __z_arch_esf_t_SIZEOF
 
+#ifdef WCH_DEBUG_GPIO
+	csrrci a1, mstatus, 0x8	/* irq lock */
+	nop
+	nop
+	nop
+
 	/* pull up gpio */
 	li t0, 0x400010a8
 	lw t1, 0(t0)
+	li t2, 0x40
+	and t2, t2, t1
+	beqz t2, pull_up_gpio6
 	ori t1, t1, 0x20
+	j 1f
+pull_up_gpio6:
+	ori t1, t1, 0x40
+1:
 	sw t1, 0(t0)
+
+	csrw mstatus, a1		/* irq unlock */
+#endif
 
 	mret
 

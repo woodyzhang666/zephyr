@@ -6,7 +6,6 @@ zephyr_library_sources(
   cpu_idle.c
   fatal.c
   irq_manage.c
-  isr.S
   prep_c.c
   reboot.c
   reset.S
@@ -15,6 +14,7 @@ zephyr_library_sources(
   thread.c
 )
 
+zephyr_library_sources_ifdef(CONFIG_RISCV_COMMON_ISR isr.S)
 zephyr_library_sources_ifdef(CONFIG_DEBUG_COREDUMP coredump.c)
 zephyr_library_sources_ifdef(CONFIG_IRQ_OFFLOAD irq_offload.c)
 zephyr_library_sources_ifdef(CONFIG_RISCV_PMP pmp.c pmp.S)

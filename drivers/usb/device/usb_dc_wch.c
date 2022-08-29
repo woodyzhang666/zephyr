@@ -797,10 +797,10 @@ static int usb_dc_wch_init(const struct device *dev)
 	/* clear stale interrupts */
 	*(volatile uint8_t *)(USB_REG_BASE + R8_USB_INT_FG) = 0xFF;
 
-	extern void __irq_wrapper(void);
+	extern void __wch_irq_wrapper(void);
 	/* vector table free interrupt */
 	*(volatile uint8_t *)(0xE000E050) = 22;
-	*(volatile uint32_t *)(0xE000E060) = (uint32_t)__irq_wrapper + 1;
+	*(volatile uint32_t *)(0xE000E060) = (uint32_t)__wch_irq_wrapper + 1;
 
 	IRQ_CONNECT(USB_IRQ, USB_IRQ_PRI, usb_dc_wch_isr, 0, 0);
 	irq_enable(USB_IRQ);

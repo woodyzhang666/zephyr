@@ -248,7 +248,10 @@ static ALWAYS_INLINE unsigned int arch_irq_lock(void)
 {
 	unsigned int key;
 
-	__asm__ volatile ("csrrc %0, mstatus, %1"
+	__asm__ volatile ("csrrc %0, mstatus, %1 \n"
+			"nop \n"
+			"nop \n"
+			"nop"
 			  : "=r" (key)
 			  : "rK" (MSTATUS_IEN)
 			  : "memory");
