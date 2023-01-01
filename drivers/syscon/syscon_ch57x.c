@@ -84,6 +84,9 @@ static int syscon_ch57x_init(const struct device *dev)
 	addr= (volatile uint32_t *)0x400010a0;	/* dir */
 	*addr |= (1U << 7);
 
+	/* map gpiob int to pb22, pb23 instead of pb8, pb9 */
+	*(volatile uint16_t *)0x40001018 |= BIT(13);
+
     /* enable usb pins */
     *(volatile uint16_t *)0x4000101a |= BIT(7);
 #endif

@@ -1,0 +1,118 @@
+
+menuconfig DEBUGGER_ADAPTER
+	bool "debugger adapter"
+	help
+	  This option enables building zephyr as a debugger firmware.
+
+if DEBUGGER
+
+module = DEBUGGER
+module-str = debugger
+source "subsys/logging/Kconfig.template.log_config"
+
+
+choice DEBUGGER_ADAPTER_TYPE
+	prompt "Debugger Adapter Type Selection"
+	default DAPLINK
+	help
+	  Select the Debugger Adapter type.
+
+config DAPLINK
+    bool "Daplink"
+    help
+      Arm CMSIS DAP v2, i.e. Daplink.
+
+endchoice
+
+if DAPLINK
+
+config DAPLINK_SWD
+    bool "Enable SWD Support"
+    help
+      Enable SWD Support on Daplink Instances
+
+config DAPLINK_JTAG
+    bool "Enable JTAG Support"
+    help
+      Enable JTAG Support
+
+config DAPLINK_JTAG_DEV_CNT
+    int "Max devices on JTAG chain"
+    default 4
+    help
+      Max devices on JTAG chain
+
+config DAPLINK_DEFAULT_PORT
+    int "Default Target Port"
+    default 1
+    help
+      Default Target Port after initialization,  1: SWD, 2: JTAG.
+
+config CPU_FREQ
+    int "CPU frequency"
+    help
+      CPU frequency.
+
+config IO_PORT_WRITE_CYCLES
+    int "CPU Cycles needed for an IO write operation"
+    default 2
+    help
+      CPU Cycles needed for an IO write operation. Used to calculate delay
+      time.
+
+config DAPLINK_DEFAULT_SWJ_CLOCK_FREQ
+    int "Default SWD/JTAG Clock Frequency"
+    default 1000000
+    help
+        Default SWD/JTAG Clock Frequency. Limited by GPIO frequency.
+
+config DAPLINK_PACKET_SIZE
+    int "Command/Response Packet Size"
+    default 512
+    help
+      Command/Response Packet Size
+
+config DAPLINK_PACKET_COUNT
+    int "Response Packet Buffer Count"
+    default 4
+    help
+      Response Packet Buffer Count
+
+config DAPLINK_SWO_UART
+    bool "Enable SWO UART"
+
+config DAPLINK_SWO_BUFFER_SIZE
+    int "SWO Buffer Size"
+    default 4096
+
+config DAPLINK_SWO_STREAM_TRACE
+    bool "Enable SWO Stream Trace"
+
+config DAPLINK_UART
+    bool "Enable Daplink UART"
+
+
+endif # DAPLINK
+
+config DEBUGGER_CRB_BUF_SIZE
+    int "Size of Command Response Buffer"
+    default 128
+    help
+      Size of Command Response Buffer
+
+source "subsys/debugger/transport/Kconfig"
+
+choice DEBUGGER_TARGET_DRIVER
+    prompt "Type of connection between debugger and target"
+    default DEBUGGER_TARGET_DRIVER_GPIO_BITBANG
+    help
+      Select the debugger target driver
+
+config DEBUGGER_TARGET_DRIVER_GPIO_BITBANG
+    bool "Emulate JTAG/SWD sequences using GPIO BitBang"
+    help
+      Emulate JTAG/SWD sequences using GPIO BitBang
+
+endchoice
+
+endif # DEBUGGER_ADAPTER

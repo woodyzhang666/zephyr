@@ -118,6 +118,7 @@ static int gpio_wch_configure(const struct device *dev, gpio_pin_t pin,
 			*(volatile uint32_t *)R32_PX_OUT(port) &= ~BIT(pin);
 		}
 		*(volatile uint32_t *)R32_PX_DIR(port) |= BIT(pin);
+		*(volatile uint32_t *)R32_PX_PD_DRV(port) |= BIT(pin);	/* big driving strength*/
 	} else {
 		*(volatile uint32_t *)R32_PX_DIR(port) &= ~BIT(pin);
 	}

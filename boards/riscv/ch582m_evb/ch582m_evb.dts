@@ -15,15 +15,60 @@
 		zephyr,shell-uart = &uart1;
 	};
 
+	dap-pins {
+		compatible = "gpio-keys";
 
-};
+        conn_led: led0 {
+            gpios = <&gpio0 10 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+            label = "Conn LED";
+        };
 
-&clk_lsi {
-	status = "okay";
-};
+        run_led: led1 {
+            gpios = <&gpio0 11 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+            label = "Run LED";
+        };
 
-&clk_lse {
-	status = "okay";
+		swclk_tck: swclk_tck {
+			gpios = <&gpio0 14 0>;
+			label = "SWDCK_TCK";
+		};
+
+		swdio_tms_in: swdio_tms_in {
+			gpios = <&gpio0 13 0>;
+			label = "SWDIO_TMS_IN";
+		};
+
+		swdio_tms_out: swdio_tms_out {
+			gpios = <&gpio0 15 0>;
+			label = "SWDIO_TMS_OUT";
+		};
+
+		tdi: tdi {
+			gpios = <&gpio1 7 0>;
+			label = "TDI";
+		};
+
+		tdo: tdo {
+			gpios = <&gpio1 4 0>;
+			label = "TDO";
+		};
+
+		nreset: nreset {
+			gpios = <&gpio0 12 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "nRESET";
+		};
+
+		pwr_sw: pwr_sw {
+			gpios = <&gpio1 13 0>;
+			label = "PWR SW";
+		};
+
+		pwr_button: button0 {
+			gpios = <&gpio1 22 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "POWER BUTTON";
+		};
+	};
+
 };
 
 &clk_hse {
@@ -42,7 +87,7 @@
 };
 
 &uart1 {
-	current-speed = <1000000>;
+	current-speed = <115200>;
 	status = "okay";
 };
 

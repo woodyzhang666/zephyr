@@ -21,7 +21,7 @@
 
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(cdc_acm_echo, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(cdc_acm_echo, LOG_LEVEL_INF);
 
 #define RING_BUF_SIZE 1024
 uint8_t ring_buffer[RING_BUF_SIZE];

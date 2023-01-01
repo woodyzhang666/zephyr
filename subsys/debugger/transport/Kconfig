@@ -1,0 +1,25 @@
+
+choice DEBUGGER_TRANSPORT
+    prompt "Debugger Transport type"
+    default DEBUGGER_TRANSPORT_USB
+    help
+      Select the transport type of debugger
+
+config DEBUGGER_TRANSPORT_USB
+    bool "Debugger Transport Over USB"
+    help
+      The Debugger communicates with host through USB.
+
+config DEBUGGER_TRANSPORT_ETH
+    bool "Debugger Transport Over Ethernet"
+    help
+      The Debugger communicates with host through Ethernet.
+
+endchoice
+
+config DEBUGGER_USB_EP_MPS
+    int "Max Packet Size of Bulk Endpoints"
+    default 64
+    help
+        Max Packet Size of Bulk Endpoints of the Debugger Interface
+
